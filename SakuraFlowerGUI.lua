@@ -261,7 +261,7 @@ local a = (function()
     k.ThemeName = 'Midnight'
     k.Assets = {
         Shadow = 'rbxassetid://6014261993', Glow = 'rbxassetid://8992230677',
-        Logo = 'rbxassetid://126046618277085'
+        Logo = 'rbxassetid://103859712365480'
     }
     local q = [[https://raw.githubusercontent.com/Footagesus/Icons/refs/heads/main/lucide/dist/Icons.lua]]
     local r = nil
@@ -2239,18 +2239,19 @@ local a = (function()
             local bS = bR * a3 + (bR - 1) * 2
             bw.CanvasSize = UDim2.fromOffset(0, math.max(bQ, 1) * (a3 + 2) - 2)
             local bT = a2.Scale.Scale
-            local bU = a2.Body.AbsoluteSize.Y / bT
-            local bV = (ba.AbsolutePosition.Y - a2.Body.AbsolutePosition.Y) / bT
-            local bW = math.max(bU - (bV + ba.AbsoluteSize.Y / bT) - 14, bV - 14) - bP - 16
-            if bW >= a3 then
-                bS = math.min(bS, bW)
+            local bU = a2:_popupHost(aX)
+            local bV = bU.AbsoluteSize.Y / bT
+            local bW = (ba.AbsolutePosition.Y - bU.AbsolutePosition.Y) / bT
+            local bX = math.max(bV - (bW + ba.AbsoluteSize.Y / bT) - 14, bW - 14) - bP - 16
+            if bX >= a3 then
+                bS = math.min(bS, bX)
             end
             bw.Position = UDim2.fromOffset(0, bP)
             bw.Size = UDim2.new(1, 0, 0, bS)
-            local bX = math.max(math.floor(ba.AbsoluteSize.X / bT), aU.PopupWidth or 210)
-            local bY = a2.Body.AbsoluteSize.X / bT
-            bX = math.min(bX, math.max(bY - 16, 120))
-            bL = Vector2.new(bX, bP + bS + 16)
+            local bY = math.max(math.floor(ba.AbsoluteSize.X / bT), aU.PopupWidth or 210)
+            local bZ = bU.AbsoluteSize.X / bT
+            bY = math.min(bY, math.max(bZ - 16, 120))
+            bL = Vector2.new(bY, bP + bS + 16)
             bm.Size = UDim2.new(1, 0, 0, bL.Y)
             if not bM then
                 return
@@ -2272,7 +2273,7 @@ local a = (function()
         end
         local bP = nil
         local function bQ()
-            local bR = a2.Body
+            local bR = a2:_popupHost(aX)
             local bS = a2.Scale.Scale
             if bP then
                 local bT = ba.AbsolutePosition + ba.AbsoluteSize / 2
@@ -2342,6 +2343,7 @@ local a = (function()
                     bT = bP
                     bP.ScrollingEnabled = false
                 end
+                bi.Parent = a2:_popupHost(aX)
                 bB = ''
                 br.Text = ''
                 br.PlaceholderText = aU.SearchPlaceholder or (#aW > 6 and ('Search ' .. #aW .. ' options') or 'Search')
@@ -4545,6 +4547,7 @@ local a = (function()
             )
         )
         a7:SetDragStyle(a4.DragStyle or (a4.DragSkeleton == false and 'Off' or 'Outline'))
+        a7:SetIslandStyle(a4.IslandStyle)
         if a4.Transparent then
             a7:SetTransparent(true)
         end
@@ -4767,7 +4770,7 @@ local a = (function()
         self._controlsDirty = false
     end
     function a2:_overControl(a4)
-        if self._dialog then
+        if self._dialog or self:_overPopout(a4) then
             return true
         end
         if self._controlsDirty then
@@ -5229,6 +5232,18 @@ local a = (function()
     end
     function a2:GetDragStyle()
         return self.DragStyle
+    end
+    k.IslandStyles = {'Show on Hover', 'Always Show'}
+    function a2:SetIslandStyle(a5)
+        a5 = table.find(k.IslandStyles, a5) and a5 or 'Show on Hover'
+        self.IslandStyle = a5
+        if self._islandSettle then
+            self._islandSettle()
+        end
+        return a5
+    end
+    function a2:GetIslandStyle()
+        return self.IslandStyle
     end
     function a2:SetDragSkeleton(a5)
         if a5 == false then
@@ -5744,10 +5759,10 @@ local a = (function()
             )
             local bK = am(
                 {
-                    Size = UDim2.new(1, -8, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
-                    Text = tostring(bA.Text), TextSize = 13, FontFace = D.Regular,
-                    TextColor3 = z.Muted, TextWrapped = true, TextTruncate = Enum.TextTruncate.None,
-                    TextYAlignment = Enum.TextYAlignment.Top, Parent = bJ
+                    Size = UDim2.new(1, -8, 0, 0), Text = tostring(bA.Text), TextSize = 13,
+                    FontFace = D.Regular, TextColor3 = z.Muted, TextWrapped = true,
+                    TextTruncate = Enum.TextTruncate.None, TextYAlignment = Enum.TextYAlignment.Top,
+                    Parent = bJ
                 }
             )
             local bL = ai(
@@ -5922,22 +5937,35 @@ local a = (function()
                 )
             end
             local bQ = false
-            local function bR(bS)
-                local bT = math.max(bK.TextBounds.Y, 16)
-                local bU = math.min(bT, bE)
-                bK.Size = UDim2.new(1, -8, 0, bT)
-                bJ.Size = UDim2.new(1, -bD * 2, 0, bU)
-                bJ.CanvasSize = UDim2.fromOffset(0, bT)
-                local bV = bD + 60 + bU + 18 + 34 + bD - 4
+            local function bR()
+                local bS, bT = pcall(
+                    function()
+                        local bS = Instance.new('GetTextBoundsParams')
+                        bS.Text = bK.Text
+                        bS.Font = bK.FontFace
+                        bS.Size = bK.TextSize
+                        bS.Width = bC - bD * 2 - 8
+                        return game:GetService('TextService'):GetTextBoundsAsync(bS)
+                    end
+                )
+                return bS and bT and math.ceil(bT.Y) + 2 or bK.TextBounds.Y
+            end
+            local function bS(bT)
+                local bU = math.max(bR(), 16)
+                local bV = math.min(bU, bE)
+                bK.Size = UDim2.new(1, -8, 0, bU)
+                bJ.Size = UDim2.new(1, -bD * 2, 0, bV)
+                bJ.CanvasSize = UDim2.fromOffset(0, bU)
+                local bW = bD + 60 + bV + 18 + 34 + bD - 4
                 if bN then
-                    bV += bN.Size.Y.Offset + 10
+                    bW += bN.Size.Y.Offset + 10
                 end
-                ah(bg, {Size = UDim2.fromOffset(bC, bV)}, bS, Enum.EasingStyle.Quint)
+                ah(bg, {Size = UDim2.fromOffset(bC, bW)}, bT, Enum.EasingStyle.Quint)
             end
             bK:GetPropertyChangedSignal('TextBounds'):Connect(
                 function()
                     if bQ and bg.Parent and bG.Parent then
-                        bR(0.2)
+                        bS(0.2)
                     end
                 end
             )
@@ -5948,7 +5976,7 @@ local a = (function()
                         return
                     end
                     bQ = true
-                    bR(0.35)
+                    bS(0.35)
                     task.delay(
                         0.12,
                         function()
@@ -7933,200 +7961,543 @@ local a = (function()
             }
         )
         aq(bT, 'chevron-down')
-        local bU = am(
+        local bU = bK.PopOut ~= false
+        local bV, bW
+        if bU then
+            bV = ai(
+                'TextButton',
+                {
+                    AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -34, 0.5, 0),
+                    Size = UDim2.fromOffset(24, 24), BackgroundColor3 = z.Surface2,
+                    BackgroundTransparency = 1, BorderSizePixel = 0, Text = '',
+                    AutoButtonColor = false, ZIndex = 3, Parent = bQ
+                }
+            )
+            aj(bV, UDim.new(0, 6))
+            bW = ai(
+                'ImageLabel',
+                {
+                    AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+                    Size = UDim2.fromOffset(13, 13), BackgroundTransparency = 1,
+                    ImageColor3 = z.Muted, ImageTransparency = E and 0 or 0.45,
+                    ScaleType = Enum.ScaleType.Fit, ZIndex = 3, Parent = bV
+                }
+            )
+            aq(bW, 'picture-in-picture-2')
+        end
+        local bX = am(
             {
-                Position = UDim2.fromOffset(bS, 0), Size = UDim2.new(1, -(bS + 40), 1, 0),
-                Text = bK.Name or 'Groupbox', TextSize = 13, FontFace = D.Bold, ZIndex = 2,
-                Parent = bQ
+                Position = UDim2.fromOffset(bS, 0),
+                Size = UDim2.new(1, -(bS + (bU and 66 or 40)), 1, 0), Text = bK.Name or 'Groupbox',
+                TextSize = 13, FontFace = D.Bold, ZIndex = 2, Parent = bQ
             }
         )
-        local bV = ai(
+        local bY = ai(
             'Frame',
             {
                 Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = z.Stroke, BorderSizePixel = 0,
                 LayoutOrder = 2, Parent = bP
             }
         )
-        local bW = ai(
+        local bZ = ai(
             'Frame',
             {
                 Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1, ClipsDescendants = true, LayoutOrder = 3, Parent = bP
             }
         )
-        local bX = ai(
+        local b_ = ai(
             'Frame',
             {
                 Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
-                BackgroundTransparency = 1, Parent = bW
+                BackgroundTransparency = 1, Parent = bZ
             }
         )
-        k._space(al(bX, 0, 0, 6, 8), {0, 0, 6, 8})
+        k._space(al(b_, 0, 0, 6, 8), {0, 0, 6, 8})
         k._space(
             ai(
                 'UIListLayout',
-                {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 2), Parent = bX}
+                {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 2), Parent = b_}
             ), 2
         )
-        local bY = setmetatable(
+        local b0 = setmetatable(
             {
-                Name = bK.Name or 'Groupbox', Window = bM, Parent = self, List = bX, Frame = bP,
+                Name = bK.Name or 'Groupbox', Window = bM, Parent = self, List = b_, Frame = bP,
                 _frame = bP, _order = 0, _groupbox = true, _metrics = P.Row, _items = {}
             }, aS
         )
-        table.insert(self._groupboxes, bY)
-        local bZ = false
-        local b_ = 0
-        local function b0(b1, b2)
-            b1 = b1 == true
-            if b1 == bZ then
+        table.insert(self._groupboxes, b0)
+        local b1 = false
+        local b2 = 0
+        local function b3(b4, b5)
+            b4 = b4 == true
+            if b4 == b1 then
                 return
             end
-            bZ = b1
-            b_ += 1
-            local b3 = b_
-            local b4 = b2 and 0 or 0.32
-            if b1 then
-                for b5, b6 in ipairs(bY._items) do
-                    if b6._onHide then
-                        b6._onHide()
+            b1 = b4
+            b2 += 1
+            local b6 = b2
+            local b7 = b5 and 0 or 0.32
+            if b4 then
+                for b8, b9 in ipairs(b0._items) do
+                    if b9._onHide then
+                        b9._onHide()
                     end
-                    if b6.Open and type(b6.SetOpen) == 'function' then
-                        b6:SetOpen(false)
+                    if b9.Open and type(b9.SetOpen) == 'function' then
+                        b9:SetOpen(false)
                     end
                 end
             end
             bM._controlsDirty = true
-            local b5 = bM.Scale.Scale
-            if b1 then
-                bW.AutomaticSize = Enum.AutomaticSize.None
-                bW.Size = UDim2.new(1, 0, 0, bW.AbsoluteSize.Y / b5)
-                ah(bW, {Size = UDim2.new(1, 0, 0, 0)}, b4, Enum.EasingStyle.Quint)
+            local b8 = bM.Scale.Scale
+            if b4 then
+                bZ.AutomaticSize = Enum.AutomaticSize.None
+                bZ.Size = UDim2.new(1, 0, 0, bZ.AbsoluteSize.Y / b8)
+                ah(bZ, {Size = UDim2.new(1, 0, 0, 0)}, b7, Enum.EasingStyle.Quint)
             else
                 ah(
-                    bW, {Size = UDim2.new(1, 0, 0, bX.AbsoluteSize.Y / b5)}, b4,
+                    bZ, {Size = UDim2.new(1, 0, 0, b_.AbsoluteSize.Y / b8)}, b7,
                     Enum.EasingStyle.Quint
                 )
-                local function b6()
-                    if b_ == b3 and not bZ then
-                        bW.AutomaticSize = Enum.AutomaticSize.Y
-                        bW.Size = UDim2.new(1, 0, 0, 0)
+                local function b9()
+                    if b2 == b6 and not b1 then
+                        bZ.AutomaticSize = Enum.AutomaticSize.Y
+                        bZ.Size = UDim2.new(1, 0, 0, 0)
                     end
                 end
-                if b4 > 0 then
-                    task.delay(b4, b6)
+                if b7 > 0 then
+                    task.delay(b7, b9)
                 else
-                    b6()
+                    b9()
                 end
             end
-            local b6 = b2 and 0 or 0.3
-            if b1 then
-                local function b7()
-                    if b_ == b3 and bZ then
-                        bV.Visible = false
+            local b9 = b5 and 0 or 0.3
+            if b4 then
+                local function ca()
+                    if b2 == b6 and b1 then
+                        bY.Visible = false
                         bR.Visible = false
                     end
                 end
-                if b4 > 0 then
-                    task.delay(b4, b7)
+                if b7 > 0 then
+                    task.delay(b7, ca)
                 else
-                    b7()
+                    ca()
                 end
             else
-                bV.Visible = true
+                bY.Visible = true
                 bR.Visible = true
             end
-            ah(bT, {Rotation = b1 and -90 or 0}, b6, Enum.EasingStyle.Quint)
+            ah(bT, {Rotation = b4 and -90 or 0}, b9, Enum.EasingStyle.Quint)
         end
-        local function b1(b2)
-            local b3 = b2 and 0.15 or 0.25
-            ah(bT, {ImageColor3 = b2 and z.Text or z.Muted}, b3)
+        local function b4(b5)
+            local b6 = b5 and 0.15 or 0.25
+            ah(bT, {ImageColor3 = b5 and z.Text or z.Muted}, b6)
+            if bW and not E then
+                ah(bW, {ImageTransparency = b5 and 0 or 0.45}, b6)
+            end
         end
         bQ.MouseEnter:Connect(
             function()
-                b1(true)
+                b4(true)
             end
         )
         bQ.MouseLeave:Connect(
             function()
-                b1(false)
+                b4(false)
             end
         )
-        local b2 = ay(
+        local b5 = ay(
             bQ,
             function()
                 return bP:FindFirstAncestorWhichIsA('ScrollingFrame')
             end
         )
+        local b6, b7 = false, 0
+        local b8, b9, ca, cb, cc
+        local cd, ce, cf, cg = nil, nil, false, false
+        local ch = false
+        local function ci()
+            return math.max(bM.Scale.Scale, 0.05)
+        end
+        local function cj(ck)
+            return (ck - bM._popLayer.AbsolutePosition) / ci()
+        end
+        local function ck(cl, cm, cn)
+            local co = bM._popLayer.AbsoluteSize / ci()
+            local cp = 8
+            local cq = math.clamp(cl.X, cm / 2 + cp, math.max(co.X - cm / 2 - cp, cm / 2 + cp))
+            local cr = math.clamp(cl.Y, cp, math.max(co.Y - math.min(cn, 120) - cp, cp))
+            return Vector2.new(cq, cr)
+        end
+        local function cl()
+            for cm, cn in ipairs(b0._items) do
+                if cn._onHide then
+                    cn._onHide()
+                end
+                if cn.Open and type(cn.SetOpen) == 'function' then
+                    cn:SetOpen(false)
+                end
+            end
+        end
+        local function cm(cn)
+            if bW then
+                aq(bW, cn and 'minimize-2' or 'picture-in-picture-2')
+            end
+        end
+        local function cn()
+            if b6 or not bU or not bP.Parent or b0._destroyed then
+                return
+            end
+            if b0._settleDock then
+                b0._settleDock()
+            end
+            local co = bM:_popoutLayer()
+            b6 = true
+            b0._popped = true
+            b7 += 1
+            local cp = b7
+            cl()
+            bM:_closePopups()
+            local cq = ci()
+            local cr = bP.Parent
+            local cs = cj(bP.AbsolutePosition)
+            local ct = bP.AbsoluteSize.X / cq
+            local cu = bP.AbsoluteSize.Y / cq
+            cb = ai(
+                'TextButton',
+                {
+                    Size = UDim2.new(1, 0, 0, cu), BackgroundColor3 = z.Surface2,
+                    BackgroundTransparency = 0.6, BorderSizePixel = 0, Text = '',
+                    AutoButtonColor = false, ClipsDescendants = true, LayoutOrder = bP.LayoutOrder,
+                    Parent = cr
+                }
+            )
+            cb:SetAttribute('NoDrag', true)
+            aj(cb, UDim.new(0, 10))
+            ak(cb, z.Stroke, 1).Transparency = 0.3
+            local cv = am(
+                {
+                    Size = UDim2.new(1, -24, 0, 40), Position = UDim2.fromOffset(12, 0),
+                    Text = k._rich(b0.Name) .. '<font transparency="0.4">  \u{b7}  popped out, click to dock</font>',
+                    TextSize = 12, FontFace = D.Regular, TextColor3 = z.Muted,
+                    TextXAlignment = Enum.TextXAlignment.Center, RichText = true,
+                    TextTransparency = 1, Parent = cb
+                }
+            )
+            local cw = cb
+            cb.MouseEnter:Connect(
+                function()
+                    ah(cw, {BackgroundTransparency = 0.35}, 0.15)
+                end
+            )
+            cb.MouseLeave:Connect(
+                function()
+                    ah(cw, {BackgroundTransparency = 0.6}, 0.25)
+                end
+            )
+            cb.MouseButton1Click:Connect(
+                function()
+                    if cb == cw then
+                        b0:Dock()
+                    end
+                end
+            )
+            ah(cb, {Size = UDim2.new(1, 0, 0, 40)}, 0.42, Enum.EasingStyle.Quint)
+            ah(cv, {TextTransparency = 0}, 0.3)
+            cb.Visible = bP.Visible
+            b8 = ai(
+                'Frame',
+                {
+                    Name = 'PopOut', AnchorPoint = Vector2.new(0.5, 0),
+                    Position = UDim2.fromOffset(cs.X + ct / 2, cs.Y),
+                    Size = UDim2.fromOffset(ct, cu), BackgroundTransparency = 1, Parent = co
+                }
+            )
+            b8:SetAttribute('NoDrag', true)
+            b9 = ai('UIScale', {Parent = b8})
+            ca = ai(
+                'ImageLabel',
+                {
+                    Position = UDim2.fromOffset(-24, -18), Size = UDim2.new(1, 48, 1, 44),
+                    BackgroundTransparency = 1, Image = A.Shadow, ImageColor3 = Color3.new(0, 0, 0),
+                    ImageTransparency = 1, ScaleType = Enum.ScaleType.Slice,
+                    SliceCenter = Rect.new(49, 49, 450, 450), ZIndex = 0, Parent = b8
+                }
+            )
+            table.insert(bM._popPanels, b8)
+            bP.Parent = b8
+            bM._controlsDirty = true
+            cm(true)
+            local cx = ck(b0._popSpot or Vector2.new(cs.X + ct / 2 + 22, cs.Y - 14), ct, cu)
+            ch = true
+            b9.Scale = 0.97
+            ah(b8, {Position = UDim2.fromOffset(cx.X, cx.Y)}, 0.5, Enum.EasingStyle.Quint)
+            ah(b9, {Scale = 1}, 0.55, Enum.EasingStyle.Back)
+            ah(ca, {ImageTransparency = 0.35}, 0.4)
+            task.delay(
+                0.5,
+                function()
+                    if b7 == cp then
+                        ch = false
+                    end
+                end
+            )
+            local cy = b8
+            cc = bM:_listen(
+                'Render',
+                function()
+                    if b8 ~= cy or not cy.Parent then
+                        return
+                    end
+                    local cz = bP.AbsoluteSize.Y / ci()
+                    if math.abs(cy.Size.Y.Offset - cz) > 0.5 then
+                        cy.Size = UDim2.fromOffset(cy.Size.X.Offset, cz)
+                    end
+                    cy.Visible = bP.Visible
+                    if cb then
+                        cb.Visible = bP.Visible
+                    end
+                    if not ch and not cd then
+                        local cA = Vector2.new(cy.Position.X.Offset, cy.Position.Y.Offset)
+                        local cB = ck(cA, cy.Size.X.Offset, cz)
+                        if (cB - cA).Magnitude > 0.5 then
+                            cy.Position = UDim2.fromOffset(cB.X, cB.Y)
+                        end
+                    end
+                end
+            )
+        end
+        local function co(cp)
+            if not b6 then
+                return
+            end
+            b6 = false
+            b0._popped = false
+            b7 += 1
+            cd, cf, cg = nil, false, false
+            cl()
+            bM:_closePopups()
+            local cq, cr, cs, ct, cu = b8, cb, cc, b9, ca
+            b8, cb, cc = nil, nil, nil
+            cm(false)
+            b0._popSpot = Vector2.new(cq.Position.X.Offset, cq.Position.Y.Offset)
+            local cv = false
+            local function cw()
+                if cv then
+                    return
+                end
+                cv = true
+                if b0._settleDock == cw then
+                    b0._settleDock = nil
+                end
+                if cs then
+                    cs()
+                end
+                local cx = table.find(bM._popPanels, cq)
+                if cx then
+                    table.remove(bM._popPanels, cx)
+                end
+                if bP.Parent == cq then
+                    if cr and cr.Parent and not b0._destroyed then
+                        bP.Parent = cr.Parent
+                        bP.LayoutOrder = cr.LayoutOrder
+                    end
+                end
+                if cr then
+                    cr:Destroy()
+                end
+                if bP.Parent ~= cq then
+                    cq:Destroy()
+                end
+                ch = false
+                bM._controlsDirty = true
+            end
+            b0._settleDock = cw
+            local cx = not cp and cr and cr.Parent and bM.Root.Visible and bP.Visible and cr.AbsoluteSize.X > 0 and a3(
+                cr, bM.Body, cr.AbsolutePosition + cr.AbsoluteSize / 2
+            )
+            if not cx then
+                cw()
+                return
+            end
+            ch = true
+            local cy = ci()
+            local cz = bP.AbsoluteSize.Y / cy
+            local cA = cr.AbsoluteSize.X / cy
+            ah(cr, {Size = UDim2.new(1, 0, 0, cz)}, 0.36, Enum.EasingStyle.Quint)
+            local cB = cr:FindFirstChildWhichIsA('TextLabel')
+            if cB then
+                ah(cB, {TextTransparency = 1}, 0.12)
+            end
+            local cC = cj(cr.AbsolutePosition)
+            ah(
+                cq,
+                {Position = UDim2.fromOffset(cC.X + cA / 2, cC.Y), Size = UDim2.fromOffset(cA, cz)},
+                0.36, Enum.EasingStyle.Quint
+            )
+            ah(ct, {Scale = 1}, 0.2)
+            ah(cu, {ImageTransparency = 1}, 0.3)
+            task.delay(0.37, cw)
+        end
+        bQ.InputBegan:Connect(
+            function(cp)
+                if not b6 or not aw(cp) or not b8 then
+                    return
+                end
+                cd = Vector2.new(cp.Position.X, cp.Position.Y)
+                ce = Vector2.new(b8.Position.X.Offset, b8.Position.Y.Offset)
+                cf = false
+                cg = false
+            end
+        )
+        bM:_listen(
+            'Changed',
+            function(cp)
+                if not cd or not b8 or not aA(cp) then
+                    return
+                end
+                local cq = Vector2.new(cp.Position.X, cp.Position.Y) - cd
+                if not cf then
+                    if cq.Magnitude < (E and 8 or 5) then
+                        return
+                    end
+                    cf, cg = true, true
+                    ch = false
+                    cl()
+                    bM:_closePopups()
+                    ah(b9, {Scale = 1.025}, 0.18, Enum.EasingStyle.Quint)
+                    ah(ca, {ImageTransparency = 0.15}, 0.18)
+                end
+                local cr = ck(ce + cq / ci(), b8.Size.X.Offset, b8.Size.Y.Offset)
+                b8.Position = UDim2.fromOffset(cr.X, cr.Y)
+            end, b0
+        )
+        bM:_listen(
+            'Ended',
+            function(cp)
+                if not cd or not aw(cp) then
+                    return
+                end
+                cd = nil
+                if cf and b8 then
+                    cf = false
+                    ah(b9, {Scale = 1}, 0.4, Enum.EasingStyle.Back)
+                    ah(ca, {ImageTransparency = 0.35}, 0.3)
+                    b0._popSpot = Vector2.new(b8.Position.X.Offset, b8.Position.Y.Offset)
+                end
+            end, b0
+        )
+        if bV then
+            bV.MouseEnter:Connect(
+                function()
+                    ah(bV, {BackgroundTransparency = 0}, 0.15)
+                    ah(bW, {ImageColor3 = z.Text}, 0.15)
+                end
+            )
+            bV.MouseLeave:Connect(
+                function()
+                    ah(bV, {BackgroundTransparency = 1}, 0.25)
+                    ah(bW, {ImageColor3 = z.Muted}, 0.25)
+                end
+            )
+            bV.MouseButton1Click:Connect(
+                function()
+                    if b6 then
+                        co()
+                    else
+                        cn()
+                    end
+                end
+            )
+        end
         bQ.MouseButton1Click:Connect(
             function()
-                if b2() then
-                    b0(not bZ)
+                if cg then
+                    cg = false
+                    return
+                end
+                if b5() then
+                    b3(not b1)
                 end
             end
         )
-        function bY:SetCollapsed(b3)
-            b0(b3)
+        function b0:PopOut()
+            cn()
         end
-        function bY:Collapse()
-            b0(true)
+        function b0:Dock()
+            co()
         end
-        function bY:Expand()
-            b0(false)
+        function b0:IsPoppedOut()
+            return b6
         end
-        function bY:IsCollapsed()
-            return bZ
+        function b0:SetCollapsed(cp)
+            b3(cp)
         end
-        function bY:SetTitle(b3)
-            bY.Name = tostring(b3)
-            bU.Text = bY.Name
+        function b0:Collapse()
+            b3(true)
         end
-        bY._userVisible = bK.Visible ~= false
-        function bY:IsVisible()
-            return bY._userVisible
+        function b0:Expand()
+            b3(false)
         end
-        function bY:SetVisible(b3)
-            b3 = b3 and true or false
-            if b3 == bY._userVisible then
+        function b0:IsCollapsed()
+            return b1
+        end
+        function b0:SetTitle(cp)
+            b0.Name = tostring(cp)
+            bX.Text = b0.Name
+        end
+        b0._userVisible = bK.Visible ~= false
+        function b0:IsVisible()
+            return b0._userVisible
+        end
+        function b0:SetVisible(cp)
+            cp = cp and true or false
+            if cp == b0._userVisible then
                 return
             end
-            bY._userVisible = b3
-            if not b3 then
-                for b4, b5 in ipairs(bY._items) do
-                    if b5._onHide then
-                        b5._onHide()
+            b0._userVisible = cp
+            if not cp then
+                for cq, cr in ipairs(b0._items) do
+                    if cr._onHide then
+                        cr._onHide()
                     end
-                    if b5.Open and type(b5.SetOpen) == 'function' then
-                        b5:SetOpen(false)
+                    if cr.Open and type(cr.SetOpen) == 'function' then
+                        cr:SetOpen(false)
                     end
                 end
             end
-            bP.Visible = b3
+            bP.Visible = cp
             bM._controlsDirty = true
         end
-        if not bY._userVisible then
+        if not b0._userVisible then
             bP.Visible = false
         end
-        function bY:Destroy()
-            for b3 = #bY._items, 1, -1 do
-                local b4 = bY._items[b3]
-                if type(b4.Destroy) == 'function' then
-                    b4:Destroy()
+        function b0:Destroy()
+            for cp = #b0._items, 1, -1 do
+                local cq = b0._items[cp]
+                if type(cq.Destroy) == 'function' then
+                    cq:Destroy()
                 end
             end
-            local b3 = bY.Parent
-            local b4 = table.find(b3._groupboxes, bY)
-            if b4 then
-                table.remove(b3._groupboxes, b4)
+            local cp = b0.Parent
+            local cq = table.find(cp._groupboxes, b0)
+            if cq then
+                table.remove(cp._groupboxes, cq)
             end
             bN.Counts[bO] = math.max(bN.Counts[bO] - 1, 0)
+            co(true)
+            b0._destroyed = true
             bM._controlsDirty = true
             bP:Destroy()
         end
         if bK.Collapsed then
-            b0(true, true)
+            b3(true, true)
         end
-        return bY
+        if bK.PoppedOut then
+            task.defer(cn)
+        end
+        return b0
     end
     local function bK(bL)
         return function(bM, bN, bO)
@@ -8693,40 +9064,40 @@ local a = (function()
         local bS = self.Window
         local bT = {}
         local bU, bV, bW, bX
-        local bY, bZ, b_, b0, b1
-        local b2, b3, b4, b5
-        local b6, b7, b8, b9
-        local function ca(cb, cc, cd)
-            bS:Notify({Title = cc, Content = cd, Type = cb and 'Success' or 'Error', Duration = 3})
-        end
-        local function cb()
-            local cc = bS:GetDefaultTheme()
-            bV:Set('Default theme: ' .. (cc or 'none'))
-            local cd = bU:Get() or bX:Get()
-            bW:SetText(2, (cd and cd == cc) and 'Clear Default' or 'Set Default')
+        local bY, bZ, b_, b0, b1, b2
+        local b3, b4, b5, b6
+        local b7, b8, b9, ca
+        local function cb(cc, cd, ce)
+            bS:Notify({Title = cd, Content = ce, Type = cc and 'Success' or 'Error', Duration = 3})
         end
         local function cc()
-            local cd = bU:Get()
-            if not cd then
-                ca(false, 'No theme selected', 'Pick one from the list first')
+            local cd = bS:GetDefaultTheme()
+            bV:Set('Default theme: ' .. (cd or 'none'))
+            local ce = bU:Get() or bX:Get()
+            bW:SetText(2, (ce and ce == cd) and 'Clear Default' or 'Set Default')
+        end
+        local function cd()
+            local ce = bU:Get()
+            if not ce then
+                cb(false, 'No theme selected', 'Pick one from the list first')
             end
-            return cd
+            return ce
         end
         bX = bR:Dropdown(
             {
                 Name = 'Preset', Options = bP(),
                 Default = k.ThemePresets[k.ThemeName or ''] and k.ThemeName or nil,
                 NoneText = 'custom', AllowNone = false,
-                Callback = function(cd)
-                    if cd then
-                        k:SetTheme(cd)
+                Callback = function(ce)
+                    if ce then
+                        k:SetTheme(ce)
                         bU:Set(nil, true)
-                        cb()
+                        cc()
                     end
                 end
             }
         )
-        local cd = {
+        local ce = {
             None = 'None', Snow = 'Snow', Rain = 'Rain', Ember = 'Hell Fire', Sakura = 'Sakura',
             Fireflies = 'Fireflies', Matrix = 'Matrix'
         }
@@ -8735,10 +9106,10 @@ local a = (function()
                 {
                     Name = 'Weather',
                     Options = {'Snow', 'Rain', 'Hell Fire', 'Sakura', 'Fireflies', 'Matrix', 'None'},
-                    Default = cd[bS.Weather] or 'None', AllowNone = false,
-                    Callback = function(ce)
-                        if ce then
-                            bS:SetWeather(ce)
+                    Default = ce[bS.Weather] or 'None', AllowNone = false,
+                    Callback = function(cf)
+                        if cf then
+                            bS:SetWeather(cf)
                         end
                     end
                 }
@@ -8749,9 +9120,9 @@ local a = (function()
                 {
                     Name = 'Weather Mode', Options = {'Screen', 'UI'}, Default = bS.WeatherMode,
                     AllowNone = false,
-                    Callback = function(ce)
-                        if ce then
-                            bS:SetWeatherMode(ce)
+                    Callback = function(cf)
+                        if cf then
+                            bS:SetWeatherMode(cf)
                         end
                     end
                 }
@@ -8761,8 +9132,8 @@ local a = (function()
             b_ = bR:Toggle(
                 {
                     Name = 'Dim', Default = bS._backdropDim,
-                    Callback = function(ce)
-                        bS:SetDim(ce)
+                    Callback = function(cf)
+                        bS:SetDim(cf)
                     end
                 }
             )
@@ -8771,8 +9142,8 @@ local a = (function()
             b0 = bR:Toggle(
                 {
                     Name = 'Transparent', Default = bS.Transparent == true,
-                    Callback = function(ce)
-                        bS:SetTransparent(ce)
+                    Callback = function(cf)
+                        bS:SetTransparent(cf)
                     end
                 }
             )
@@ -8782,132 +9153,145 @@ local a = (function()
                 {
                     Name = 'Drag Style', Options = k.DragStyles, Default = bS.DragStyle,
                     AllowNone = false,
-                    Callback = function(ce)
-                        if ce then
-                            bS:SetDragStyle(ce)
+                    Callback = function(cf)
+                        if cf then
+                            bS:SetDragStyle(cf)
+                        end
+                    end
+                }
+            )
+        end
+        if bQ.IslandStyle ~= false then
+            b2 = bR:Dropdown(
+                {
+                    Name = 'Dynamic Island', Options = k.IslandStyles, Default = bS.IslandStyle,
+                    AllowNone = false,
+                    Callback = function(cf)
+                        if cf then
+                            bS:SetIslandStyle(cf)
                         end
                     end
                 }
             )
         end
         if bQ.AdaptiveSize ~= false then
-            b8 = bR:Toggle(
+            b9 = bR:Toggle(
                 {
                     Name = 'Adaptive Size', Default = bS:GetAdaptiveSize(),
-                    Callback = function(ce)
-                        bS:SetAdaptiveSize(ce)
+                    Callback = function(cf)
+                        bS:SetAdaptiveSize(cf)
                     end
                 }
             )
         end
         if bQ.Scale ~= false then
-            b6 = bR:Slider(
+            b7 = bR:Slider(
                 {
                     Name = 'UI Scale', Min = 60, Max = 150, Increment = 5,
                     Default = math.floor(bS:GetUIScale() * 100 + 0.5), Suffix = '%',
-                    Callback = function(ce)
-                        if not (b6 and b6.Dragging) then
-                            bS:SetUIScale(ce / 100)
+                    Callback = function(cf)
+                        if not (b7 and b7.Dragging) then
+                            bS:SetUIScale(cf / 100)
                         end
                     end,
-                    OnRelease = function(ce)
-                        bS:SetUIScale(ce / 100)
+                    OnRelease = function(cf)
+                        bS:SetUIScale(cf / 100)
                     end
                 }
             )
         end
         if bQ.Density ~= false then
-            b7 = bR:Dropdown(
+            b8 = bR:Dropdown(
                 {
                     Name = 'Density', Options = {'Compact', 'Default', 'Comfortable'},
                     Default = k.Density, AllowNone = false,
-                    Callback = function(ce)
-                        if ce then
-                            k:SetDensity(ce)
+                    Callback = function(cf)
+                        if cf then
+                            k:SetDensity(cf)
                         end
                     end
                 }
             )
         end
         if bQ.CornerRadius ~= false then
-            b9 = bR:Slider(
+            ca = bR:Slider(
                 {
                     Name = 'Corner Radius', Min = 0, Max = 20, Increment = 1,
                     Default = k:GetCornerRadius(), Suffix = 'px',
-                    Callback = function(ce)
-                        k:SetCornerRadius(ce)
+                    Callback = function(cf)
+                        k:SetCornerRadius(cf)
                     end
                 }
             )
         end
         if bQ.Background ~= false then
-            b5 = function(ce)
-                if ce == nil or ce == '' then
+            b6 = function(cf)
+                if cf == nil or cf == '' then
                     return 'None'
                 end
-                return table.find(bS:ListBackgrounds(), ce) and ce or nil
+                return table.find(bS:ListBackgrounds(), cf) and cf or nil
             end
-            local function ce(cf, cg)
+            local function cf(cg, ch)
                 task.spawn(
                     function()
-                        local ch, ci = bS:SetBackground(cf)
-                        if ch and not cg then
-                            b2:Set(b5(bS.Background), true)
-                        elseif not ch and ci ~= 'replaced by a newer background' then
-                            ca(false, 'Background failed', tostring(ci))
+                        local ci, cj = bS:SetBackground(cg)
+                        if ci and not ch then
+                            b3:Set(b6(bS.Background), true)
+                        elseif not ci and cj ~= 'replaced by a newer background' then
+                            cb(false, 'Background failed', tostring(cj))
                         end
                     end
                 )
             end
-            local cf = bS:ListBackgrounds()
-            table.insert(cf, 1, 'None')
-            b2 = bR:Dropdown(
+            local cg = bS:ListBackgrounds()
+            table.insert(cg, 1, 'None')
+            b3 = bR:Dropdown(
                 {
-                    Name = 'Background', Options = cf, Default = b5(bS.Background),
+                    Name = 'Background', Options = cg, Default = b6(bS.Background),
                     NoneText = 'custom', AllowNone = false,
-                    Callback = function(cg)
-                        if cg then
-                            ce(cg, true)
+                    Callback = function(ch)
+                        if ch then
+                            cf(ch, true)
                         end
                     end
                 }
             )
-            b3 = bL(
+            b4 = bL(
                 bR, 'image id or url', 'Set',
-                function(cg)
-                    cg = bM(cg)
-                    if cg == '' then
-                        ca(false, 'No image', 'Paste an image id or link first')
+                function(ch)
+                    ch = bM(ch)
+                    if ch == '' then
+                        cb(false, 'No image', 'Paste an image id or link first')
                         return
                     end
-                    ce(cg)
+                    cf(ch)
                 end
             )
-            b4 = bR:Slider(
+            b5 = bR:Slider(
                 {
                     Name = 'Background Opacity', Min = 0, Max = 100,
                     Default = math.floor((1 - bS.BackgroundTransparency) * 100 + 0.5), Suffix = '%',
-                    Callback = function(cg)
-                        bS:SetBackgroundTransparency(1 - cg / 100)
+                    Callback = function(ch)
+                        bS:SetBackgroundTransparency(1 - ch / 100)
                     end
                 }
             )
         end
-        local ce = bL(
+        local cf = bL(
             bR, bQ.Placeholder or 'theme name', 'Create',
-            function(ce)
-                bT:Create(ce)
+            function(cf)
+                bT:Create(cf)
             end
         )
         bU = bR:Dropdown(
             {
                 Name = 'Theme', Options = bS:ListThemes(),
                 Default = (function()
-                    local cf = bS:GetDefaultTheme()
-                    return cf and not k.ThemePresets[cf] and cf or nil
+                    local cg = bS:GetDefaultTheme()
+                    return cg and not k.ThemePresets[cg] and cg or nil
                 end)(), EmptyText = 'no themes', NoneText = 'select',
                 Callback = function()
-                    cb()
+                    cc()
                 end
             }
         )
@@ -8946,106 +9330,106 @@ local a = (function()
         bV = bR:Label('Default theme: none')
         function bT:Refresh()
             bU:Refresh(bS:ListThemes(), true)
-            if b2 then
-                local cf = bS:ListBackgrounds()
-                table.insert(cf, 1, 'None')
-                b2:Refresh(cf, true, true)
+            if b3 then
+                local cg = bS:ListBackgrounds()
+                table.insert(cg, 1, 'None')
+                b3:Refresh(cg, true, true)
             end
-            cb()
+            cc()
         end
-        function bT:Create(cf)
-            cf = bM(cf)
-            if cf == '' then
-                ca(false, 'Name the theme', 'Type a name before creating it')
+        function bT:Create(cg)
+            cg = bM(cg)
+            if cg == '' then
+                cb(false, 'Name the theme', 'Type a name before creating it')
                 return
             end
-            if k.ThemePresets[cf] then
-                ca(false, 'Name taken', cf .. ' is a built-in preset')
+            if k.ThemePresets[cg] then
+                cb(false, 'Name taken', cg .. ' is a built-in preset')
                 return
             end
-            local cg, ch = bS:SaveTheme(cf)
+            local ch, ci = bS:SaveTheme(cg)
             bT:Refresh()
-            if cg then
-                bU:Set(cf, true)
-                ce:Set('')
-                cb()
+            if ch then
+                bU:Set(cg, true)
+                cf:Set('')
+                cc()
             end
-            ca(cg, cg and 'Theme created' or 'Create failed', cg and cf or tostring(ch))
+            cb(ch, ch and 'Theme created' or 'Create failed', ch and cg or tostring(ci))
         end
-        function bT:Save(cf)
-            cf = cf or cc()
-            if not cf then
+        function bT:Save(cg)
+            cg = cg or cd()
+            if not cg then
                 return
             end
-            local cg, ch = bS:SaveTheme(cf)
-            ca(cg, cg and 'Theme saved' or 'Save failed', cg and cf or tostring(ch))
+            local ch, ci = bS:SaveTheme(cg)
+            cb(ch, ch and 'Theme saved' or 'Save failed', ch and cg or tostring(ci))
         end
-        function bT:Load(cf)
-            cf = cf or cc()
-            if not cf then
+        function bT:Load(cg)
+            cg = cg or cd()
+            if not cg then
                 return
             end
-            local cg, ch = bS:LoadTheme(cf)
-            if cg then
+            local ch, ci = bS:LoadTheme(cg)
+            if ch then
                 bX:Set(nil, true)
             end
-            ca(cg ~= false, cg and 'Theme loaded' or 'Load failed', cg and cf or tostring(ch))
+            cb(ch ~= false, ch and 'Theme loaded' or 'Load failed', ch and cg or tostring(ci))
         end
-        function bT:Delete(cf)
-            cf = cf or cc()
-            if not cf then
+        function bT:Delete(cg)
+            cg = cg or cd()
+            if not cg then
                 return
             end
             bS:Confirm(
                 {
-                    Title = 'Delete theme', Content = 'Remove ' .. cf .. '? This cannot be undone.',
+                    Title = 'Delete theme', Content = 'Remove ' .. cg .. '? This cannot be undone.',
                     Icon = 'trash-2', ConfirmText = 'Delete',
                     Callback = function()
-                        local cg, ch = bS:DeleteTheme(cf)
+                        local ch, ci = bS:DeleteTheme(cg)
                         bT:Refresh()
-                        ca(cg, cg and 'Theme deleted' or 'Delete failed', cg and cf or tostring(ch))
+                        cb(ch, ch and 'Theme deleted' or 'Delete failed', ch and cg or tostring(ci))
                     end
                 }
             )
         end
-        function bT:ToggleDefault(cf)
-            cf = cf or bU:Get() or bX:Get()
-            if not cf then
-                ca(false, 'Nothing selected', 'Pick a theme or a preset first')
+        function bT:ToggleDefault(cg)
+            cg = cg or bU:Get() or bX:Get()
+            if not cg then
+                cb(false, 'Nothing selected', 'Pick a theme or a preset first')
                 return
             end
-            local cg = bS:GetDefaultTheme() == cf
-            local ch, ci = bS:SetDefaultTheme(not cg and cf or nil)
-            cb()
-            ca(
-                ch ~= false, cg and 'Default cleared' or 'Default theme set',
-                ch ~= false and cf or tostring(ci)
+            local ch = bS:GetDefaultTheme() == cg
+            local ci, cj = bS:SetDefaultTheme(not ch and cg or nil)
+            cc()
+            cb(
+                ci ~= false, ch and 'Default cleared' or 'Default theme set',
+                ci ~= false and cg or tostring(cj)
             )
         end
         if bQ.Customize ~= false then
             bR:Divider()
-            local cf = bQ.Colors or {
+            local cg = bQ.Colors or {
                 {'Accent', 'Accent'}, {'Background', 'Background'}, {'Surface2', 'Surface'},
                 {'Text', 'Text'}, {'Muted', 'Muted text'}
             }
-            for cg, ch in ipairs(cf) do
-                local ci, cj = ch[1], ch[2] or ch[1]
-                local ck, cl = nil, false
-                local cm
-                cm = bR:ColorPicker(
+            for ch, ci in ipairs(cg) do
+                local cj, ck = ci[1], ci[2] or ci[1]
+                local cl, cm = nil, false
+                local cn
+                cn = bR:ColorPicker(
                     {
-                        Name = cj, Default = z[ci],
-                        Callback = function(cn)
-                            ck = cn
-                            if cl then
+                        Name = ck, Default = z[cj],
+                        Callback = function(co)
+                            cl = co
+                            if cm then
                                 return
                             end
-                            cl = true
+                            cm = true
                             task.delay(
                                 0.08,
                                 function()
-                                    cl = false
-                                    k:SetTheme({[ci] = ck}, true)
+                                    cm = false
+                                    k:SetTheme({[cj] = cl}, true)
                                     bX:Set(nil, true)
                                 end
                             )
@@ -9055,105 +9439,109 @@ local a = (function()
                 table.insert(
                     k._themeListeners,
                     function()
-                        if cm.Value ~= z[ci] then
-                            cm:Set(z[ci], true)
+                        if cn.Value ~= z[cj] then
+                            cn:Set(z[cj], true)
                         end
                     end
                 )
             end
         end
         if bQ.Flag ~= false then
-            local cf = type(bQ.Flag) == 'string' and bQ.Flag or '__Theme'
-            local cg = {
+            local cg = type(bQ.Flag) == 'string' and bQ.Flag or '__Theme'
+            local ch = {
                 _type = 'Theme', _searchName = 'Theme', _searchKey = 'theme', _listeners = {}
             }
-            function cg:Get()
-                local ch = {}
-                for ci, cj in ipairs(n) do
-                    ch[cj] = bc(z[cj])
+            function ch:Get()
+                local ci = {}
+                for cj, ck in ipairs(n) do
+                    ci[ck] = bc(z[ck])
                 end
                 return {
-                    Name = bX:Get() or bU:Get(), Colors = ch, Weather = bY and bS.Weather or nil,
+                    Name = bX:Get() or bU:Get(), Colors = ci, Weather = bY and bS.Weather or nil,
                     WeatherMode = bZ and bS.WeatherMode or nil,
                     Dim = if b_ then bS._backdropDim == true else nil,
                     Transparent = if b0 then bS.Transparent == true else nil,
                     DragStyle = b1 and bS.DragStyle or nil,
-                    CornerRadius = b9 and k:GetCornerRadius() or nil,
-                    UIScale = b6 and bS:GetUIScale() or nil,
-                    AdaptiveSize = if b8 then bS:GetAdaptiveSize() else nil,
-                    Density = b7 and k.Density or nil,
-                    Background = b2 and (bS.Background or '') or nil,
-                    BackgroundTransparency = b2 and bS.BackgroundTransparency or nil
+                    IslandStyle = b2 and bS.IslandStyle or nil,
+                    CornerRadius = ca and k:GetCornerRadius() or nil,
+                    UIScale = b7 and bS:GetUIScale() or nil,
+                    AdaptiveSize = if b9 then bS:GetAdaptiveSize() else nil,
+                    Density = b8 and k.Density or nil,
+                    Background = b3 and (bS.Background or '') or nil,
+                    BackgroundTransparency = b3 and bS.BackgroundTransparency or nil
                 }
             end
-            function cg:Set(ch)
-                if type(ch) ~= 'table' then
+            function ch:Set(ci)
+                if type(ci) ~= 'table' then
                     return
                 end
-                if type(ch.Colors) == 'table' then
-                    k:SetTheme(ch.Colors)
+                if type(ci.Colors) == 'table' then
+                    k:SetTheme(ci.Colors)
                 end
-                local ci = type(ch.Name) == 'string' and ch.Name or nil
-                if ci and k.ThemePresets[ci] then
-                    k.ThemeName = ci
-                    bX:Set(ci, true)
+                local cj = type(ci.Name) == 'string' and ci.Name or nil
+                if cj and k.ThemePresets[cj] then
+                    k.ThemeName = cj
+                    bX:Set(cj, true)
                     bU:Set(nil, true)
                 else
-                    if ci then
-                        k.ThemeName = ci
+                    if cj then
+                        k.ThemeName = cj
                     end
                     bX:Set(nil, true)
-                    bU:Set(ci and table.find(bS:ListThemes(), ci) and ci or nil, true)
+                    bU:Set(cj and table.find(bS:ListThemes(), cj) and cj or nil, true)
                 end
-                if bY and type(ch.Weather) == 'string' then
-                    bS:SetWeather(ch.Weather)
-                    bY:Set(cd[bS.Weather] or 'None', true)
+                if bY and type(ci.Weather) == 'string' then
+                    bS:SetWeather(ci.Weather)
+                    bY:Set(ce[bS.Weather] or 'None', true)
                 end
-                if bZ and type(ch.WeatherMode) == 'string' then
-                    bS:SetWeatherMode(ch.WeatherMode)
+                if bZ and type(ci.WeatherMode) == 'string' then
+                    bS:SetWeatherMode(ci.WeatherMode)
                     bZ:Set(bS.WeatherMode, true)
                 end
-                if b_ and type(ch.Dim) == 'boolean' then
-                    bS:SetDim(ch.Dim)
-                    b_:Set(ch.Dim, true)
+                if b_ and type(ci.Dim) == 'boolean' then
+                    bS:SetDim(ci.Dim)
+                    b_:Set(ci.Dim, true)
                 end
-                if b0 and type(ch.Transparent) == 'boolean' then
-                    bS:SetTransparent(ch.Transparent)
-                    b0:Set(ch.Transparent, true)
+                if b0 and type(ci.Transparent) == 'boolean' then
+                    bS:SetTransparent(ci.Transparent)
+                    b0:Set(ci.Transparent, true)
                 end
-                if b1 and type(ch.DragStyle) == 'string' then
-                    b1:Set(bS:SetDragStyle(ch.DragStyle), true)
-                elseif b1 and type(ch.DragSkeleton) == 'boolean' then
-                    bS:SetDragSkeleton(ch.DragSkeleton)
+                if b1 and type(ci.DragStyle) == 'string' then
+                    b1:Set(bS:SetDragStyle(ci.DragStyle), true)
+                elseif b1 and type(ci.DragSkeleton) == 'boolean' then
+                    bS:SetDragSkeleton(ci.DragSkeleton)
                     b1:Set(bS.DragStyle, true)
                 end
-                if b9 and tonumber(ch.CornerRadius) then
-                    b9:Set(k:SetCornerRadius(ch.CornerRadius), true)
+                if b2 and type(ci.IslandStyle) == 'string' then
+                    b2:Set(bS:SetIslandStyle(ci.IslandStyle), true)
                 end
-                if b8 and type(ch.AdaptiveSize) == 'boolean' then
-                    bS:SetAdaptiveSize(ch.AdaptiveSize)
-                    b8:Set(ch.AdaptiveSize, true)
+                if ca and tonumber(ci.CornerRadius) then
+                    ca:Set(k:SetCornerRadius(ci.CornerRadius), true)
                 end
-                if b6 and tonumber(ch.UIScale) then
-                    bS:SetUIScale(tonumber(ch.UIScale))
-                    b6:Set(math.floor(bS:GetUIScale() * 100 + 0.5), true)
+                if b9 and type(ci.AdaptiveSize) == 'boolean' then
+                    bS:SetAdaptiveSize(ci.AdaptiveSize)
+                    b9:Set(ci.AdaptiveSize, true)
                 end
-                if b7 and type(ch.Density) == 'string' then
-                    b7:Set(k:SetDensity(ch.Density), true)
+                if b7 and tonumber(ci.UIScale) then
+                    bS:SetUIScale(tonumber(ci.UIScale))
+                    b7:Set(math.floor(bS:GetUIScale() * 100 + 0.5), true)
                 end
-                if b2 and tonumber(ch.BackgroundTransparency) then
-                    bS:SetBackgroundTransparency(tonumber(ch.BackgroundTransparency))
-                    b4:Set(math.floor((1 - bS.BackgroundTransparency) * 100 + 0.5), true)
+                if b8 and type(ci.Density) == 'string' then
+                    b8:Set(k:SetDensity(ci.Density), true)
                 end
-                if b2 and type(ch.Background) == 'string' and ch.Background ~= (bS.Background or '') then
-                    local cj = ch.Background
-                    b2:Set(b5(cj), true)
-                    task.spawn(bS.SetBackground, bS, cj)
+                if b3 and tonumber(ci.BackgroundTransparency) then
+                    bS:SetBackgroundTransparency(tonumber(ci.BackgroundTransparency))
+                    b5:Set(math.floor((1 - bS.BackgroundTransparency) * 100 + 0.5), true)
                 end
-                cb()
+                if b3 and type(ci.Background) == 'string' and ci.Background ~= (bS.Background or '') then
+                    local ck = ci.Background
+                    b3:Set(b6(ck), true)
+                    task.spawn(bS.SetBackground, bS, ck)
+                end
+                cc()
             end
-            k.Flags[cf] = cg
-            bS:_flagCreated(cf, cg)
+            k.Flags[cg] = ch
+            bS:_flagCreated(cg, ch)
         end
         bS._workspaceListeners = bS._workspaceListeners or {}
         table.insert(
@@ -9163,7 +9551,7 @@ local a = (function()
                 bT:Refresh()
             end
         )
-        cb()
+        cc()
         return bT
     end
     aS.CreateButtonRow = aS.ButtonRow
@@ -16400,6 +16788,52 @@ local a = (function()
             self._closePopup()
         end
     end
+    function a2:_popoutLayer()
+        if self._popLayer then
+            return self._popLayer
+        end
+        local bZ = ai(
+            'Frame',
+            {
+                Name = 'PopOuts', Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
+                ZIndex = 20, Parent = self.Gui
+            }
+        )
+        local b_ = ai('UIScale', {Parent = bZ})
+        self._popLayer = bZ
+        self._popPanels = {}
+        self:_listen(
+            'Render',
+            function()
+                local b0 = math.max(self.Scale.Scale, 0.05)
+                if math.abs(b_.Scale - b0) > 1e-4 then
+                    b_.Scale = b0
+                    bZ.Size = UDim2.fromScale(1 / b0, 1 / b0)
+                end
+                bZ.Visible = self.Open == true and not self._destroyed
+            end
+        )
+        return bZ
+    end
+    function a2:_popupHost(bZ)
+        local b_ = self._popLayer
+        if b_ and bZ and bZ:IsDescendantOf(b_) then
+            return b_
+        end
+        return self.Body
+    end
+    function a2:_overPopout(bZ)
+        local b_ = self._popLayer
+        if not b_ or not b_.Visible then
+            return false
+        end
+        for b0, b1 in ipairs(self._popPanels) do
+            if b1.Parent and b1.Visible and az(bZ, b1) then
+                return true
+            end
+        end
+        return false
+    end
     function a2:_fade(bZ, b_)
         local b0, b1 = self._fader, self.Body
         self._fadeGeneration = (self._fadeGeneration or 0) + 1
@@ -16981,7 +17415,7 @@ local a = (function()
         self._weatherSpeed = math.clamp(tonumber(b7) or 1, 0.1, 3)
     end
     local b7 = {
-        Top = 8, Width = E and 132 or 124, Height = E and 36 or 32, Wide = 340, Radius = 34,
+        Top = 8, Width = E and 176 or 168, Height = E and 36 or 32, Wide = 340, Radius = 34,
         Bars = 4, Pinned = 6
     }
     local function b8(b9, ca, cb, cc)
@@ -17054,18 +17488,47 @@ local a = (function()
         end
         local ci = ai(
             'CanvasGroup',
-            {Name = 'Compact', Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = cc}
-        )
-        local cj = ai(
-            'ImageLabel',
             {
-                AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 13, 0.5, 0),
-                Size = UDim2.fromOffset(18, 18), BackgroundTransparency = 1, ImageColor3 = z.Accent,
-                ScaleType = Enum.ScaleType.Fit, Parent = ci
+                Name = 'Compact', Size = UDim2.fromScale(1, 1),
+                BackgroundColor3 = Color3.fromRGB(30, 30, 34), BorderSizePixel = 0, Parent = cc
             }
         )
-        aq(cj, self._logoIcon, true)
+        ai(
+            'UIGradient',
+            {
+                Rotation = 90,
+                Color = ColorSequence.new(
+                    Color3.fromRGB(255, 255, 255), Color3.fromRGB(120, 120, 120)
+                ), Parent = ci
+            }
+        )
+        local cj = ai(
+            'Frame',
+            {
+                AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 5, 0.5, 0),
+                Size = UDim2.fromOffset(b7.Height - 10, b7.Height - 10),
+                BackgroundColor3 = z.Accent, BackgroundTransparency = 0.82, BorderSizePixel = 0,
+                Parent = ci
+            }
+        )
+        aj(cj, UDim.new(1, 0))
         local ck = ai(
+            'ImageLabel',
+            {
+                AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+                Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1, ImageColor3 = z.Accent,
+                ScaleType = Enum.ScaleType.Fit, Parent = cj
+            }
+        )
+        aq(ck, self._logoIcon, true)
+        local cl = am(
+            {
+                AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, b7.Height + 2, 0.5, 0),
+                Size = UDim2.new(1, -b7.Height - 2 - 72, 0, 18), Text = self.Title, TextSize = 13,
+                FontFace = D.Bold, TextColor3 = Color3.fromRGB(244, 244, 246), Parent = ci
+            }
+        )
+        local cm = ai(
             'Frame',
             {
                 AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0),
@@ -17079,96 +17542,111 @@ local a = (function()
                 FillDirection = Enum.FillDirection.Horizontal,
                 HorizontalAlignment = Enum.HorizontalAlignment.Right,
                 VerticalAlignment = Enum.VerticalAlignment.Center,
-                SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 7), Parent = ck
+                SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 7), Parent = cm
             }
         )
-        local cl = ai(
+        local cn = ai(
             'Frame',
             {
                 Size = UDim2.fromOffset(b7.Bars * 3 + (b7.Bars - 1) * 2, 16),
-                BackgroundTransparency = 1, LayoutOrder = 1, Parent = ck
+                BackgroundTransparency = 1, Visible = false, LayoutOrder = 1, Parent = cm
             }
         )
-        local cm = {}
-        for cn = 1, b7.Bars do
-            local co = ai(
+        local co = {}
+        for cp = 1, b7.Bars do
+            local cq = ai(
                 'Frame',
                 {
                     AnchorPoint = Vector2.new(0, 0.5),
-                    Position = UDim2.new(0, (cn - 1) * 5, 0.5, 0), Size = UDim2.fromOffset(3, 3),
-                    BackgroundColor3 = z.Muted, BorderSizePixel = 0, Parent = cl
+                    Position = UDim2.new(0, (cp - 1) * 5, 0.5, 0), Size = UDim2.fromOffset(3, 3),
+                    BackgroundColor3 = z.Muted, BorderSizePixel = 0, Parent = cn
                 }
             )
-            aj(co, UDim.new(1, 0))
-            cm[cn] = co
+            aj(cq, UDim.new(1, 0))
+            co[cp] = cq
         end
-        local cn = am(
+        local cp = am(
             {
                 Size = UDim2.fromOffset(0, 18), AutomaticSize = Enum.AutomaticSize.X, Text = '',
                 TextSize = 13, FontFace = D.Bold, TextTruncate = Enum.TextTruncate.None,
-                Visible = false, LayoutOrder = 2, Parent = ck
+                Visible = false, LayoutOrder = 2, Parent = cm
             }
         )
-        local co = ch('Expanded')
-        local cp = ai(
+        local cq = ai(
+            'Frame',
+            {
+                Size = UDim2.fromOffset(6, 6), BackgroundColor3 = z.Accent, BorderSizePixel = 0,
+                LayoutOrder = -1, Parent = cm
+            }
+        )
+        aj(cq, UDim.new(1, 0))
+        local cr = am(
+            {
+                Size = UDim2.fromOffset(0, 18), AutomaticSize = Enum.AutomaticSize.X, Text = '0s',
+                TextSize = 12, FontFace = D.Bold, TextColor3 = Color3.fromRGB(220, 220, 224),
+                TextTruncate = Enum.TextTruncate.None, LayoutOrder = 0, Parent = cm
+            }
+        )
+        local cs = ch('Expanded')
+        local ct = ai(
             'Frame',
             {
                 Position = UDim2.fromOffset(16, 14), Size = UDim2.new(1, -32, 0, 0),
-                AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = co
+                AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = cs
             }
         )
         ai(
             'UIListLayout',
-            {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8), Parent = cp}
+            {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8), Parent = ct}
         )
-        local cq = ai(
+        local cu = ai(
             'Frame',
-            {Size = UDim2.new(1, 0, 0, 48), BackgroundTransparency = 1, LayoutOrder = 1, Parent = cp}
+            {Size = UDim2.new(1, 0, 0, 48), BackgroundTransparency = 1, LayoutOrder = 1, Parent = ct}
         )
-        local cr = ai(
+        local cv = ai(
             'ImageLabel',
             {
                 Size = UDim2.fromOffset(48, 48), BackgroundColor3 = Color3.fromRGB(38, 38, 41),
                 BorderSizePixel = 0,
                 Image = 'rbxthumb://type=AvatarHeadShot&id=' .. tostring(j.UserId) .. '&w=150&h=150',
-                Parent = cq
+                Parent = cu
             }
         )
-        aj(cr, UDim.new(0, 12))
-        local cs = ai(
+        aj(cv, UDim.new(0, 12))
+        local cw = ai(
             'ImageLabel',
             {
                 AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
                 Size = UDim2.fromOffset(20, 20), BackgroundTransparency = 1, ImageColor3 = z.Muted,
-                ImageTransparency = 1, ScaleType = Enum.ScaleType.Fit, Parent = cr
+                ImageTransparency = 1, ScaleType = Enum.ScaleType.Fit, Parent = cv
             }
         )
-        aq(cs, 'user')
-        self:_trackAvatar(cr, cs)
-        local ct = am(
+        aq(cw, 'user')
+        self:_trackAvatar(cv, cw)
+        local cx = am(
             {
                 Position = UDim2.fromOffset(60, 5), Size = UDim2.new(1, -150, 0, 20), TextSize = 15,
-                FontFace = D.Bold, TextColor3 = Color3.fromRGB(244, 244, 246), Parent = cq
+                FontFace = D.Bold, TextColor3 = Color3.fromRGB(244, 244, 246), Parent = cu
             }
         )
-        self:_trackName(ct, 'Display')
-        local cu = am(
+        self:_trackName(cx, 'Display')
+        local cy = am(
             {
                 Position = UDim2.fromOffset(60, 26), Size = UDim2.new(1, -150, 0, 15), Text = '',
-                TextSize = 12, FontFace = D.Regular, TextColor3 = z.Muted, Parent = cq
+                TextSize = 12, FontFace = D.Regular, TextColor3 = z.Muted, Parent = cu
             }
         )
         task.spawn(
             function()
-                cu.Text = aZ()
+                cy.Text = aZ()
             end
         )
-        local cv = am(
+        local cz = am(
             {
                 AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 3),
                 Size = UDim2.fromOffset(90, 24), Text = '0s', TextSize = 20, FontFace = D.Bold,
                 TextColor3 = Color3.fromRGB(244, 244, 246),
-                TextXAlignment = Enum.TextXAlignment.Right, Parent = cq
+                TextXAlignment = Enum.TextXAlignment.Right, Parent = cu
             }
         )
         am(
@@ -17176,321 +17654,331 @@ local a = (function()
                 AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 27),
                 Size = UDim2.fromOffset(90, 14), Text = 'session', TextSize = 11,
                 FontFace = D.Regular, TextColor3 = z.Muted,
-                TextXAlignment = Enum.TextXAlignment.Right, Parent = cq
+                TextXAlignment = Enum.TextXAlignment.Right, Parent = cu
             }
         )
-        local cw = ai(
+        local cA = ai(
             'Frame',
-            {Size = UDim2.new(1, 0, 0, 42), BackgroundTransparency = 1, LayoutOrder = 2, Parent = cp}
+            {Size = UDim2.new(1, 0, 0, 42), BackgroundTransparency = 1, LayoutOrder = 2, Parent = ct}
         )
-        local function cx(cy, cz)
-            local cA = ai(
+        local function cB(cC, cD)
+            local cE = ai(
                 'Frame',
-                {Position = cy, Size = UDim2.new(0.5, -10, 1, 0), BackgroundTransparency = 1, Parent = cw}
+                {Position = cC, Size = UDim2.new(0.5, -10, 1, 0), BackgroundTransparency = 1, Parent = cA}
             )
-            local cB = am(
+            local cF = am(
                 {
                     Size = UDim2.new(1, -70, 0, 24), Text = '', TextSize = 20, FontFace = D.Bold,
-                    TextColor3 = Color3.fromRGB(244, 244, 246), RichText = true, Parent = cA
+                    TextColor3 = Color3.fromRGB(244, 244, 246), RichText = true, Parent = cE
                 }
             )
             am(
                 {
                     AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 6),
-                    Size = UDim2.fromOffset(70, 14), Text = cz, TextSize = 10, TextColor3 = z.Muted,
-                    TextXAlignment = Enum.TextXAlignment.Right, Parent = cA
+                    Size = UDim2.fromOffset(70, 14), Text = cD, TextSize = 10, TextColor3 = z.Muted,
+                    TextXAlignment = Enum.TextXAlignment.Right, Parent = cE
                 }
             )
-            local cC = ai(
+            local cG = ai(
                 'Frame',
                 {
                     AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, -4),
                     Size = UDim2.new(1, 0, 0, 3), BackgroundColor3 = Color3.fromRGB(38, 38, 42),
-                    BorderSizePixel = 0, Parent = cA
+                    BorderSizePixel = 0, Parent = cE
                 }
             )
-            aj(cC, UDim.new(1, 0))
-            local cD = ai(
+            aj(cG, UDim.new(1, 0))
+            local cH = ai(
                 'Frame',
-                {Size = UDim2.fromScale(0, 1), BackgroundColor3 = z.Success, BorderSizePixel = 0, Parent = cC}
+                {Size = UDim2.fromScale(0, 1), BackgroundColor3 = z.Success, BorderSizePixel = 0, Parent = cG}
             )
-            aj(cD, UDim.new(1, 0))
-            return cD, cB
+            aj(cH, UDim.new(1, 0))
+            return cH, cF
         end
-        local cy, cz = cx(UDim2.fromScale(0, 0), 'FRAME RATE')
-        local cA, cB = cx(UDim2.new(0.5, 10, 0, 0), 'PING')
-        local cC = ai(
+        local cC, cD = cB(UDim2.fromScale(0, 0), 'FRAME RATE')
+        local cE, cF = cB(UDim2.new(0.5, 10, 0, 0), 'PING')
+        local cG = ai(
             'Frame',
-            {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1, LayoutOrder = 3, Parent = cp}
+            {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1, LayoutOrder = 3, Parent = ct}
         )
         ai(
             'UIListLayout',
             {
                 FillDirection = Enum.FillDirection.Horizontal,
                 VerticalAlignment = Enum.VerticalAlignment.Center,
-                SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8), Parent = cC
+                SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8), Parent = cG
             }
         )
-        local function cD(cE, cF, cG)
-            local cH = ai(
+        local function cH(cI, cJ, cK)
+            local cL = ai(
                 'Frame',
                 {
                     Size = UDim2.fromOffset(0, 30), AutomaticSize = Enum.AutomaticSize.X,
                     BackgroundColor3 = Color3.fromRGB(32, 32, 35), BorderSizePixel = 0,
-                    LayoutOrder = cE, Parent = cC
+                    LayoutOrder = cI, Parent = cG
                 }
             )
-            aj(cH, UDim.new(1, 0))
-            al(cH, 14, 14)
+            aj(cL, UDim.new(1, 0))
+            al(cL, 14, 14)
             ai(
                 'UIListLayout',
                 {
                     FillDirection = Enum.FillDirection.Horizontal,
                     VerticalAlignment = Enum.VerticalAlignment.Center,
-                    SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 7), Parent = cH
+                    SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 7), Parent = cL
                 }
             )
             am(
                 {
-                    Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Text = cF,
+                    Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Text = cJ,
                     TextSize = 12, FontFace = D.Regular, TextColor3 = z.Muted,
-                    TextTruncate = Enum.TextTruncate.None, LayoutOrder = 1, Parent = cH
+                    TextTruncate = Enum.TextTruncate.None, LayoutOrder = 1, Parent = cL
                 }
             )
             return am(
                 {
                     Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Text = '',
                     TextSize = 12, FontFace = D.Bold,
-                    TextColor3 = cG or Color3.fromRGB(244, 244, 246),
-                    TextTruncate = Enum.TextTruncate.None, LayoutOrder = 2, Parent = cH
+                    TextColor3 = cK or Color3.fromRGB(244, 244, 246),
+                    TextTruncate = Enum.TextTruncate.None, LayoutOrder = 2, Parent = cL
                 }
             )
         end
-        local cE = cD(1, 'Players')
-        local cF = cD(2, 'Running', z.Accent)
-        local cG = cD(3, 'Tab')
-        local cH = ai(
+        local cI = cH(1, 'Players')
+        local cJ = cH(2, 'Running', z.Accent)
+        local cK = cH(3, 'Tab')
+        local cL = ai(
             'Frame',
             {
                 Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, Visible = false,
-                LayoutOrder = 4, Parent = cp
+                LayoutOrder = 4, Parent = ct
             }
         )
         ai(
             'UIListLayout',
-            {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 2), Parent = cH}
+            {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 2), Parent = cL}
         )
-        local cI = am(
+        local cM = am(
             {
-                Size = UDim2.new(1, 0, 0, 14), TextSize = 11, FontFace = D.Regular,
-                TextColor3 = z.Muted, LayoutOrder = 5, Parent = cp
+                Size = UDim2.new(1, 0, 0, 15), Text = '', TextSize = 12, FontFace = D.Regular,
+                TextColor3 = Color3.fromRGB(200, 200, 206), RichText = true, Visible = false,
+                LayoutOrder = 4, Parent = ct
             }
         )
-        local cJ = self._sessionStart or os.clock()
-        local cK, cL, cM = 0, os.clock(), 60
+        local cN = am(
+            {
+                Size = UDim2.new(1, 0, 0, 14), TextSize = 11, FontFace = D.Regular,
+                TextColor3 = z.Muted, LayoutOrder = 5, Parent = ct
+            }
+        )
+        local cO = self._sessionStart or os.clock()
+        local cP, cQ, cR = 0, os.clock(), 60
         self:_listen(
             'Render',
             function()
-                cK += 1
-                local cN = os.clock()
-                if cN - cL >= 0.5 then
-                    cM = math.floor(cK / (cN - cL) + 0.5)
-                    cK, cL = 0, cN
+                cP += 1
+                local cS = os.clock()
+                if cS - cQ >= 0.5 then
+                    cR = math.floor(cP / (cS - cQ) + 0.5)
+                    cP, cQ = 0, cS
                 end
             end
         )
-        local function cN()
-            cv.Text = bA(os.clock() - cJ)
-            local cO = '<font size="12" color="#8A8A93"> %s</font>'
-            cz.Text = cM .. string.format(cO, 'fps')
+        local function cS()
+            cz.Text = bA(os.clock() - cO)
+            cr.Text = cz.Text
+            ah(cq, {BackgroundColor3 = k._healthColor(cR, 50, 30)}, 0.4)
+            local cT = '<font size="12" color="#8A8A93"> %s</font>'
+            cD.Text = cR .. string.format(cT, 'fps')
             ah(
-                cy,
+                cC,
                 {
-                    Size = UDim2.fromScale(math.clamp(cM / 60, 0.05, 1), 1),
-                    BackgroundColor3 = k._healthColor(cM, 50, 30)
+                    Size = UDim2.fromScale(math.clamp(cR / 60, 0.05, 1), 1),
+                    BackgroundColor3 = k._healthColor(cR, 50, 30)
                 }, 0.4, Enum.EasingStyle.Quint
             )
-            local cP, cQ = pcall(
+            local cU, cV = pcall(
                 function()
                     return math.floor(j:GetNetworkPing() * 1000)
                 end
             )
-            cQ = cP and cQ or 0
-            cB.Text = cQ .. string.format(cO, 'ms')
+            cV = cU and cV or 0
+            cF.Text = cV .. string.format(cT, 'ms')
             ah(
-                cA,
+                cE,
                 {
-                    Size = UDim2.fromScale(math.clamp(1 - (cQ - 40) / 360, 0.05, 1), 1),
-                    BackgroundColor3 = k._healthColor(cQ, 90, 180, true)
+                    Size = UDim2.fromScale(math.clamp(1 - (cV - 40) / 360, 0.05, 1), 1),
+                    BackgroundColor3 = k._healthColor(cV, 90, 180, true)
                 }, 0.4, Enum.EasingStyle.Quint
             )
-            cE.Text = #f:GetPlayers() .. '/' .. f.MaxPlayers
-            local cR = self.CurrentTab
-            cG.Text = cR and cR.Name or '-'
+            cI.Text = #f:GetPlayers() .. '/' .. f.MaxPlayers
+            local cW = self.CurrentTab
+            cK.Text = cW and cW.Name or '-'
         end
         task.spawn(
             function()
                 while cc.Parent do
                     if cc.Visible and self.Minimized then
-                        cN()
+                        cS()
                     end
                     task.wait(0.5)
                 end
             end
         )
-        local cO = ch('Activity')
-        local cP = ai(
+        local cT = ch('Activity')
+        local cU = ai(
             'Frame',
             {
                 Position = UDim2.fromOffset(16, 13), Size = UDim2.new(1, -32, 0, 0),
-                AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = cO
+                AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = cT
             }
         )
-        local cQ = ai(
+        local cV = ai(
             'Frame',
             {
                 Size = UDim2.fromOffset(34, 34), BackgroundColor3 = z.Accent,
-                BackgroundTransparency = 0.85, BorderSizePixel = 0, Parent = cP
+                BackgroundTransparency = 0.85, BorderSizePixel = 0, Parent = cU
             }
         )
-        aj(cQ, UDim.new(1, 0))
-        local cR = ai(
+        aj(cV, UDim.new(1, 0))
+        local cW = ai(
             'ImageLabel',
             {
                 AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
                 Size = UDim2.fromOffset(17, 17), BackgroundTransparency = 1, ImageColor3 = z.Accent,
-                ScaleType = Enum.ScaleType.Fit, Parent = cQ
+                ScaleType = Enum.ScaleType.Fit, Parent = cV
             }
         )
-        local cS = ai(
+        local cX = ai(
             'Frame',
             {
                 Position = UDim2.fromOffset(46, 0), Size = UDim2.new(1, -46, 0, 0),
-                AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = cP
+                AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = cU
             }
         )
         ai(
             'UIListLayout',
-            {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 1), Parent = cS}
+            {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 1), Parent = cX}
         )
-        local cT = am(
-            {Size = UDim2.new(1, 0, 0, 18), TextSize = 14, FontFace = D.Bold, LayoutOrder = 1, Parent = cS}
+        local cY = am(
+            {Size = UDim2.new(1, 0, 0, 18), TextSize = 14, FontFace = D.Bold, LayoutOrder = 1, Parent = cX}
         )
-        local cU = am(
+        local cZ = am(
             {
                 Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 12,
                 FontFace = D.Regular, TextColor3 = z.Muted, TextWrapped = true,
                 TextTruncate = Enum.TextTruncate.None, TextYAlignment = Enum.TextYAlignment.Top,
-                MaxVisibleGraphemes = 140, LayoutOrder = 2, Parent = cS
+                MaxVisibleGraphemes = 140, LayoutOrder = 2, Parent = cX
             }
         )
-        local cV = ai(
+        local c_ = ai(
             'TextButton',
             {
                 Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = '',
                 AutoButtonColor = false, ZIndex = 10, Parent = cc
             }
         )
-        local cW = {Compact = ci, Expanded = co, Activity = cO}
-        local cX = 'Compact'
-        local cY = 0
-        local cZ, c_
-        local c0, c1 = false, false
-        local c2, c3, c4, c5 = nil, nil, false, false
-        local c6 = 0
-        local c7 = false
-        local function c8(c9)
-            if c9 == 'Expanded' then
-                return Vector2.new(b7.Wide, math.floor(cp.AbsoluteSize.Y + 28 + 0.5)), b7.Radius
-            elseif c9 == 'Activity' then
+        local c0 = {Compact = ci, Expanded = cs, Activity = cT}
+        local c1 = 'Compact'
+        local c2 = 0
+        local c3, c4
+        local c5, c6 = false, false
+        local c7 = 0
+        local c8, c9, da, db = nil, nil, false, false
+        local dc = 0
+        local dd = false
+        local function de(df)
+            if df == 'Expanded' then
+                return Vector2.new(b7.Wide, math.floor(ct.AbsoluteSize.Y + 28 + 0.5)), b7.Radius
+            elseif df == 'Activity' then
                 return
-                    Vector2.new(b7.Wide, math.floor(math.max(cP.AbsoluteSize.Y, 34) + 26 + 0.5)),
+                    Vector2.new(b7.Wide, math.floor(math.max(cU.AbsoluteSize.Y, 34) + 26 + 0.5)),
                     b7.Radius
             end
             return Vector2.new(b7.Width, b7.Height), b7.Height / 2
         end
-        local c9 = self:_readConfigSettings().IslandPosition
-        if type(c9) == 'table' and tonumber(c9.X) and tonumber(c9.Y) then
+        local df = self:_readConfigSettings().IslandPosition
+        if type(df) == 'table' and tonumber(df.X) and tonumber(df.Y) then
             self._islandAnchor = Vector2.new(
-                math.clamp(tonumber(c9.X), 0, 1), math.clamp(tonumber(c9.Y), 0, 1)
+                math.clamp(tonumber(df.X), 0, 1), math.clamp(tonumber(df.Y), 0, 1)
             )
         end
-        local da
-        local function db()
-            local dc = cb.AbsoluteSize
-            local dd = self._islandAnchor
-            if not dd then
-                return Vector2.new(dc.X / 2, b7.Top)
+        local dg
+        local function dh()
+            local di = cb.AbsoluteSize
+            local dj = self._islandAnchor
+            if not dj then
+                return Vector2.new(di.X / 2, b7.Top)
             end
-            return Vector2.new(dd.X * dc.X, dd.Y * dc.Y)
+            return Vector2.new(dj.X * di.X, dj.Y * di.Y)
         end
-        local function dc(dd, de)
-            local df = cb.AbsoluteSize
-            local dg = de or db()
-            local dh = 6
-            local di = math.clamp(
-                dg.X, dd.X / 2 + dh, math.max(df.X - dd.X / 2 - dh, dd.X / 2 + dh)
+        local function di(dj, dk)
+            local dl = cb.AbsoluteSize
+            local dm = dk or dh()
+            local dn = 6
+            local dp = math.clamp(
+                dm.X, dj.X / 2 + dn, math.max(dl.X - dj.X / 2 - dn, dj.X / 2 + dn)
             )
-            local dj = math.clamp(dg.Y, dh, math.max(df.Y - dd.Y - dh, dh))
-            return Vector2.new(di, dj)
+            local dq = math.clamp(dm.Y, dn, math.max(dl.Y - dj.Y - dn, dn))
+            return Vector2.new(dp, dq)
         end
-        local function dd(de, df, dg)
-            local dh = dc(de)
-            if da then
-                da:Cancel()
-                da = nil
+        local function dj(dk, dl, dm)
+            local dn = di(dk)
+            if dg then
+                dg:Cancel()
+                dg = nil
             end
-            if df and df > 0 then
-                da = ah(
-                    cc, {Position = UDim2.fromOffset(dh.X, dh.Y)}, df, dg or Enum.EasingStyle.Quint
+            if dl and dl > 0 then
+                dg = ah(
+                    cc, {Position = UDim2.fromOffset(dn.X, dn.Y)}, dl, dm or Enum.EasingStyle.Quint
                 )
             else
-                cc.Position = UDim2.fromOffset(dh.X, dh.Y)
+                cc.Position = UDim2.fromOffset(dn.X, dn.Y)
             end
         end
         self._islandReset = function()
             self._islandAnchor = nil
             if cc.Visible then
-                dd(Vector2.new(cc.Size.X.Offset, cc.Size.Y.Offset), 0.35)
+                dj(Vector2.new(cc.Size.X.Offset, cc.Size.Y.Offset), 0.35)
             end
         end
-        local function de(df, dg)
-            local dh, di = c8(df)
-            local dj = df ~= cX
-            cX = df
-            cY += 1
-            local dk = cY
-            local dl = Vector2.new(cc.Size.X.Offset, cc.Size.Y.Offset)
-            local dm = dh.X > dl.X + 1 or dh.Y > dl.Y + 1
-            local dn = dg and 0 or (dm and 0.5 or 0.38)
-            if cZ then
-                cZ:Cancel()
+        local function dk(dl, dm)
+            local dn, dp = de(dl)
+            local dq = dl ~= c1
+            c1 = dl
+            c2 += 1
+            local dr = c2
+            local ds = Vector2.new(cc.Size.X.Offset, cc.Size.Y.Offset)
+            local dt = dn.X > ds.X + 1 or dn.Y > ds.Y + 1
+            local du = dm and 0 or (dt and 0.5 or 0.38)
+            if c3 then
+                c3:Cancel()
             end
-            if c_ then
-                c_:Cancel()
+            if c4 then
+                c4:Cancel()
             end
-            dd(dh, dn)
-            cZ = ah(
-                cc, {Size = UDim2.fromOffset(dh.X, dh.Y)}, dn,
-                dm and Enum.EasingStyle.Back or Enum.EasingStyle.Quint
+            dj(dn, du)
+            c3 = ah(
+                cc, {Size = UDim2.fromOffset(dn.X, dn.Y)}, du,
+                dt and Enum.EasingStyle.Back or Enum.EasingStyle.Quint
             )
-            c_ = ah(cd, {CornerRadius = UDim.new(0, di)}, dn, Enum.EasingStyle.Quint)
-            if dj and not dg and not c1 and not c4 then
-                ce.Scale = dm and 0.96 or 1.03
-                ah(ce, {Scale = 1}, dm and 0.55 or 0.4, Enum.EasingStyle.Back)
+            c4 = ah(cd, {CornerRadius = UDim.new(0, dp)}, du, Enum.EasingStyle.Quint)
+            if dq and not dm and not c6 and not da then
+                ce.Scale = dt and 0.96 or 1.03
+                ah(ce, {Scale = 1}, dt and 0.55 or 0.4, Enum.EasingStyle.Back)
             end
-            if dj or dg then
+            if dq or dm then
                 if cg then
                     cg:Cancel()
                     cg = nil
                 end
-                if dg then
-                    cf.Value = df == 'Compact' and 1 or 0
-                elseif df == 'Compact' then
+                if dm then
+                    cf.Value = dl == 'Compact' and 1 or 0
+                elseif dl == 'Compact' then
                     task.delay(
-                        dn * 0.55,
+                        du * 0.55,
                         function()
-                            if cY == dk then
+                            if c2 == dr then
                                 cg = ah(cf, {Value = 1}, 0.6, Enum.EasingStyle.Back)
                             end
                         end
@@ -17499,148 +17987,188 @@ local a = (function()
                     cg = ah(cf, {Value = 0}, 0.2, Enum.EasingStyle.Quint)
                 end
             end
-            if not dj and not dg then
+            if not dq and not dm then
+                local dv = c0[dl]
+                if dv.GroupTransparency > 0 then
+                    ah(dv, {GroupTransparency = 0}, 0.22, Enum.EasingStyle.Quad)
+                end
+                if dv ~= ci and dv.Position ~= UDim2.fromScale(0.5, 0) then
+                    ah(dv, {Position = UDim2.fromScale(0.5, 0)}, 0.32, Enum.EasingStyle.Quint)
+                end
                 return
             end
-            for dp, dq in pairs(cW) do
-                if dp ~= df then
-                    ah(dq, {GroupTransparency = 1}, dg and 0 or 0.14, Enum.EasingStyle.Quad)
+            for dv, dw in pairs(c0) do
+                if dv ~= dl then
+                    ah(dw, {GroupTransparency = 1}, dm and 0 or 0.14, Enum.EasingStyle.Quad)
                 end
             end
-            local dp = cW[df]
-            if dg then
-                dp.GroupTransparency = 0
+            local dv = c0[dl]
+            if dm then
+                dv.GroupTransparency = 0
+                if dv ~= ci then
+                    dv.Position = UDim2.fromScale(0.5, 0)
+                end
             else
+                if dv ~= ci then
+                    dv.Position = UDim2.new(0.5, 0, 0, 6)
+                end
                 task.delay(
                     0.1,
                     function()
-                        if cY == dk then
-                            ah(dp, {GroupTransparency = 0}, 0.22, Enum.EasingStyle.Quad)
+                        if c2 == dr then
+                            ah(dv, {GroupTransparency = 0}, 0.22, Enum.EasingStyle.Quad)
+                            if dv ~= ci then
+                                ah(
+                                    dv, {Position = UDim2.fromScale(0.5, 0)}, 0.32,
+                                    Enum.EasingStyle.Quint
+                                )
+                            end
                         end
                     end
                 )
             end
         end
-        local function df()
-            if c0 and not E and not c4 then
-                de('Expanded')
-            elseif c7 then
-                de('Activity')
+        local function dl()
+            if c5 and not E and not da then
+                dk('Expanded')
+            elseif dd then
+                dk('Activity')
+            elseif self.IslandStyle == 'Always Show' and not da then
+                self:_refreshMini()
+                cS()
+                dk('Expanded')
             else
-                de('Compact')
+                dk('Compact')
+            end
+        end
+        self._islandSettle = function()
+            if self.Minimized and cc.Visible and not da then
+                dl()
             end
         end
         function self:_miniLand()
-            c0, c7 = false, false
-            c6 += 1
+            c5, dd = false, false
+            dc += 1
             ce.Scale = 1
-            de('Compact', true)
-            local dg = Vector2.new(b7.Width, b7.Height)
-            local dh = dc(dg)
-            return Vector2.new(dh.X - dg.X / 2, dh.Y), dg
+            dk('Compact', true)
+            local dm = Vector2.new(b7.Width, b7.Height)
+            local dn = di(dm)
+            return Vector2.new(dn.X - dm.X / 2, dn.Y), dm
         end
-        cV.MouseEnter:Connect(
+        c_.MouseEnter:Connect(
             function()
-                if ax() or c4 then
+                if ax() or da then
                     return
                 end
-                c0 = true
-                self:_refreshMini()
-                task.defer(
+                c5 = true
+                c7 += 1
+                local dm = c7
+                if c1 == 'Expanded' then
+                    return
+                end
+                if not c6 then
+                    ah(ce, {Scale = 1.04}, 0.18, Enum.EasingStyle.Quint)
+                end
+                task.delay(
+                    0.12,
                     function()
-                        if c0 and self.Minimized and not c4 then
-                            de('Expanded')
+                        if c7 == dm and c5 and self.Minimized and not da then
+                            self:_refreshMini()
+                            cS()
+                            dk('Expanded')
                         end
                     end
                 )
             end
         )
-        cV.MouseLeave:Connect(
+        c_.MouseLeave:Connect(
             function()
-                c0 = false
-                if not c1 then
+                c5 = false
+                c7 += 1
+                local dm = c7
+                if not c6 then
                     ah(ce, {Scale = 1}, 0.25, Enum.EasingStyle.Quint)
                 end
                 task.delay(
-                    0.1,
+                    c1 == 'Expanded' and 0.28 or 0.1,
                     function()
-                        if not c0 and self.Minimized then
-                            df()
+                        if c7 == dm and not c5 and self.Minimized then
+                            dl()
                         end
                     end
                 )
             end
         )
-        cV.InputBegan:Connect(
-            function(dg)
-                if not aw(dg) then
+        c_.InputBegan:Connect(
+            function(dm)
+                if not aw(dm) then
                     return
                 end
-                c1 = true
-                c5 = false
+                c6 = true
+                db = false
                 ah(ce, {Scale = 0.95}, 0.12, Enum.EasingStyle.Quad)
                 if not self._islandLocked then
-                    c2 = Vector2.new(dg.Position.X, dg.Position.Y)
-                    c3 = dc(Vector2.new(b7.Width, b7.Height))
+                    c8 = Vector2.new(dm.Position.X, dm.Position.Y)
+                    c9 = di(Vector2.new(b7.Width, b7.Height))
                 end
             end
         )
         self:_listen(
             'Changed',
-            function(dg)
-                if not c2 or not aA(dg) or not self.Minimized then
+            function(dm)
+                if not c8 or not aA(dm) or not self.Minimized then
                     return
                 end
-                local dh = Vector2.new(dg.Position.X, dg.Position.Y) - c2
-                if not c4 then
-                    if dh.Magnitude < (E and 10 or 6) then
+                local dn = Vector2.new(dm.Position.X, dm.Position.Y) - c8
+                if not da then
+                    if dn.Magnitude < (E and 10 or 6) then
                         return
                     end
-                    c4, c5 = true, true
-                    c0 = false
-                    de('Compact')
+                    da, db = true, true
+                    c5 = false
+                    dk('Compact')
                     ah(ce, {Scale = 1.06}, 0.2, Enum.EasingStyle.Quint)
                 end
-                local di = dc(Vector2.new(b7.Width, b7.Height), c3 + dh)
-                local dj = cb.AbsoluteSize
-                self._islandAnchor = Vector2.new(di.X / math.max(dj.X, 1), di.Y / math.max(dj.Y, 1))
-                if da then
-                    da:Cancel()
-                    da = nil
+                local dp = di(Vector2.new(b7.Width, b7.Height), c9 + dn)
+                local dq = cb.AbsoluteSize
+                self._islandAnchor = Vector2.new(dp.X / math.max(dq.X, 1), dp.Y / math.max(dq.Y, 1))
+                if dg then
+                    dg:Cancel()
+                    dg = nil
                 end
-                cc.Position = UDim2.fromOffset(di.X, di.Y)
+                cc.Position = UDim2.fromOffset(dp.X, dp.Y)
             end
         )
         table.insert(
             self._connections,
             b.InputEnded:Connect(
-                function(dg)
-                    if not aw(dg) then
+                function(dm)
+                    if not aw(dm) then
                         return
                     end
-                    c2 = nil
-                    if c1 then
-                        c1 = false
+                    c8 = nil
+                    if c6 then
+                        c6 = false
                         ah(ce, {Scale = 1}, 0.35, Enum.EasingStyle.Back)
                     end
-                    if c4 then
-                        c4 = false
-                        local dh = Vector2.new(cb.AbsoluteSize.X / 2, b7.Top)
-                        local di = dc(Vector2.new(b7.Width, b7.Height))
-                        if (di - dh).Magnitude < 28 then
+                    if da then
+                        da = false
+                        local dn = Vector2.new(cb.AbsoluteSize.X / 2, b7.Top)
+                        local dp = di(Vector2.new(b7.Width, b7.Height))
+                        if (dp - dn).Magnitude < 28 then
                             self._islandAnchor = nil
-                            dd(Vector2.new(b7.Width, b7.Height), 0.35, Enum.EasingStyle.Back)
+                            dj(Vector2.new(b7.Width, b7.Height), 0.35, Enum.EasingStyle.Back)
                         end
-                        local dj = self._islandAnchor
+                        local dq = self._islandAnchor
                         self:_writeConfigSettings(
-                            {IslandPosition = dj and {X = dj.X, Y = dj.Y} or false}
+                            {IslandPosition = dq and {X = dq.X, Y = dq.Y} or false}
                         )
-                        c0 = not ax() and az(av(), cc)
+                        c5 = not ax() and az(av(), cc)
                         task.delay(
                             0.1,
                             function()
-                                if self.Minimized and not c4 then
-                                    df()
+                                if self.Minimized and not da then
+                                    dl()
                                 end
                             end
                         )
@@ -17652,16 +18180,16 @@ local a = (function()
             self._connections,
             cb:GetPropertyChangedSignal('AbsoluteSize'):Connect(
                 function()
-                    if cc.Visible and not c4 then
-                        dd(Vector2.new(cc.Size.X.Offset, cc.Size.Y.Offset), 0)
+                    if cc.Visible and not da then
+                        dj(Vector2.new(cc.Size.X.Offset, cc.Size.Y.Offset), 0)
                     end
                 end
             )
         )
-        cV.MouseButton1Click:Connect(
+        c_.MouseButton1Click:Connect(
             function()
-                if c5 then
-                    c5 = false
+                if db then
+                    db = false
                     return
                 end
                 if self.Minimized then
@@ -17670,75 +18198,75 @@ local a = (function()
             end
         )
         self._miniUnhover = function()
-            c0, c1, c7 = false, false, false
-            c2, c4 = nil, false
-            c6 += 1
+            c5, c6, dd = false, false, false
+            c8, da = nil, false
+            dc += 1
             ce.Scale = 1
             task.delay(
                 0.15,
                 function()
                     if not self.Minimized then
-                        de('Compact', true)
+                        dk('Compact', true)
                     end
                 end
             )
         end
-        self._islandActivity = function(dg)
+        self._islandActivity = function(dm)
             if not self.Minimized or not cc.Visible then
                 return
             end
-            local dh = a1[dg.Type] or z.Accent
-            cT.Text = tostring(dg.Title or 'Notification')
-            cT.TextColor3 = a1[dg.Type] or z.Text
-            cU.Text = tostring(dg.Content or '')
-            cU.Visible = cU.Text ~= ''
-            local di = dg.Icon
-            if di == nil then
-                di = ({Success = 'circle-check', Warning = 'triangle-alert', Error = 'circle-x'})[dg.Type] or 'bell'
+            local dn = a1[dm.Type] or z.Accent
+            cY.Text = tostring(dm.Title or 'Notification')
+            cY.TextColor3 = a1[dm.Type] or z.Text
+            cZ.Text = tostring(dm.Content or '')
+            cZ.Visible = cZ.Text ~= ''
+            local dp = dm.Icon
+            if dp == nil then
+                dp = ({Success = 'circle-check', Warning = 'triangle-alert', Error = 'circle-x'})[dm.Type] or 'bell'
             end
-            aq(cR, di)
-            if not cR:GetAttribute('CustomIcon') then
-                cR.ImageColor3 = dh
+            aq(cW, dp)
+            if not cW:GetAttribute('CustomIcon') then
+                cW.ImageColor3 = dn
             end
-            cQ.BackgroundColor3 = dh
-            c7 = true
-            c6 += 1
-            local dj = c6
+            cV.BackgroundColor3 = dn
+            dd = true
+            dc += 1
+            local dq = dc
             task.defer(
                 function()
-                    if c6 == dj and not c0 and not c4 then
-                        de('Activity')
+                    if dc == dq and not c5 and not da then
+                        dk('Activity')
                         ce.Scale = 0.96
                         ah(ce, {Scale = 1}, 0.4, Enum.EasingStyle.Back)
                     end
                 end
             )
             task.delay(
-                math.clamp(tonumber(dg.Duration) or 3, 1.5, 5),
+                math.clamp(tonumber(dm.Duration) or 3, 1.5, 5),
                 function()
-                    if c6 == dj then
-                        c7 = false
-                        if self.Minimized and not c0 then
-                            df()
+                    if dc == dq then
+                        dd = false
+                        if self.Minimized and not c5 then
+                            dl()
                         end
                     end
                 end
             )
         end
-        local dg = 0
+        local dm = 0
         self:_listen(
             'Render',
             function()
-                if cc.Visible and dg > 0 and cX == 'Compact' then
-                    local dh = os.clock()
-                    for di, dj in ipairs(cm) do
-                        local dk = 0.5 + 0.5 * math.sin(dh * (6 + di * 1.4) + di * 1.9)
-                        dj.Size = UDim2.fromOffset(3, math.floor(4 + dk * 11 + 0.5))
+                if cc.Visible and dm > 0 and c1 == 'Compact' then
+                    local dn = os.clock()
+                    for dp, dq in ipairs(co) do
+                        local dr = 0.5 + 0.5 * math.sin(dn * (6 + dp * 1.4) + dp * 1.9)
+                        dq.Size = UDim2.fromOffset(3, math.floor(4 + dr * 11 + 0.5))
                     end
                 end
             end
         )
-        local dh = am(
+        local dn = am(
             {
                 AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0),
                 Size = UDim2.new(1, -52, 0, 18), TextSize = 13, FontFace = D.Bold,
@@ -17746,34 +18274,34 @@ local a = (function()
                 Parent = ci
             }
         )
-        local di = ai(
+        local dp = ai(
             'TextButton',
             {
                 Name = 'IslandBubble', AnchorPoint = Vector2.new(0.5, 0.5),
-                Size = UDim2.fromOffset(0, 0), BackgroundColor3 = Color3.new(0, 0, 0),
+                Size = UDim2.fromOffset(0, 0), BackgroundColor3 = Color3.fromRGB(26, 26, 30),
                 BorderSizePixel = 0, Text = '', AutoButtonColor = false, Visible = false,
                 ZIndex = 30, Parent = cb
             }
         )
-        aj(di, UDim.new(1, 0))
-        local dj = ai('NumberValue', {Value = 0})
-        local dk = false
-        local dl = nil
-        local function dm(dn)
-            if dn == dk then
+        aj(dp, UDim.new(1, 0))
+        local dq = ai('NumberValue', {Value = 0})
+        local dr = false
+        local ds = nil
+        local function dt(du)
+            if du == dr then
                 return
             end
-            dk = dn
-            cl.Parent = dn and di or ck
-            cl.AnchorPoint = dn and Vector2.new(0.5, 0.5) or Vector2.new(0, 0)
-            cl.Position = dn and UDim2.fromScale(0.5, 0.5) or UDim2.new()
-            ck.Visible = not dn
-            ah(dh, {TextTransparency = dn and 0 or 1}, 0.2, Enum.EasingStyle.Quad)
+            dr = du
+            cn.Parent = du and dp or cm
+            cn.AnchorPoint = du and Vector2.new(0.5, 0.5) or Vector2.new(0, 0)
+            cn.Position = du and UDim2.fromScale(0.5, 0.5) or UDim2.new()
+            cm.Visible = not du
+            ah(dn, {TextTransparency = du and 0 or 1}, 0.2, Enum.EasingStyle.Quad)
             ah(
-                dj, {Value = dn and 1 or 0}, dn and 0.55 or 0.3,
-                dn and Enum.EasingStyle.Back or Enum.EasingStyle.Quint
+                dq, {Value = du and 1 or 0}, du and 0.55 or 0.3,
+                du and Enum.EasingStyle.Back or Enum.EasingStyle.Quint
             )
-            if dn then
+            if du then
                 ce.Scale = 0.96
                 ah(ce, {Scale = 1}, 0.45, Enum.EasingStyle.Back)
             end
@@ -17781,98 +18309,127 @@ local a = (function()
         self:_listen(
             'Render',
             function()
-                local dn = dj.Value * cf.Value
-                local dp = cc.Visible and dn > 0.02 and cc.GroupTransparency < 0.5
-                di.Visible = dp
-                if not dp then
+                local du = dq.Value * cf.Value
+                local dv = cc.Visible and du > 0.02 and cc.GroupTransparency < 0.5
+                dp.Visible = dv
+                if not dv then
                     return
                 end
-                local dq = cb.AbsolutePosition
-                local dr, ds = cc.AbsolutePosition - dq, cc.AbsoluteSize
-                local dt = math.min(ds.Y, b7.Height)
-                local du = 6
-                local dv = dr.X + ds.X + du + dt <= cb.AbsoluteSize.X
-                local dw = dv and dr.X + ds.X or dr.X
-                local dx = dv and 1 or -1
-                local dy = dw - dx * dt * 0.6
-                local dz = dw + dx * (du + dt / 2)
-                local dA = dy + (dz - dy) * dn
-                local dB = math.clamp(0.35 + 0.65 * dn, 0, 1.2)
-                local dC = math.sin(math.clamp(dn, 0, 1) * math.pi)
-                di.Position = UDim2.fromOffset(dA, dr.Y + dt / 2)
-                di.Size = UDim2.fromOffset(dt * dB * (1 + 0.4 * dC), dt * dB * (1 - 0.18 * dC))
-                di.BackgroundTransparency = cc.GroupTransparency
+                local dw = cb.AbsolutePosition
+                local dx, dy = cc.AbsolutePosition - dw, cc.AbsoluteSize
+                local dz = math.min(dy.Y, b7.Height)
+                local dA = 6
+                local dB = dx.X + dy.X + dA + dz <= cb.AbsoluteSize.X
+                local dC = dB and dx.X + dy.X or dx.X
+                local dD = dB and 1 or -1
+                local dE = dC - dD * dz * 0.6
+                local dF = dC + dD * (dA + dz / 2)
+                local dG = dE + (dF - dE) * du
+                local dH = math.clamp(0.35 + 0.65 * du, 0, 1.2)
+                local dI = math.sin(math.clamp(du, 0, 1) * math.pi)
+                dp.Position = UDim2.fromOffset(dG, dx.Y + dz / 2)
+                dp.Size = UDim2.fromOffset(dz * dH * (1 + 0.4 * dI), dz * dH * (1 - 0.18 * dI))
+                dp.BackgroundTransparency = cc.GroupTransparency
             end
         )
-        di.MouseButton1Click:Connect(
+        dp.MouseButton1Click:Connect(
             function()
                 if self.Minimized then
                     self:Restore()
                 end
             end
         )
-        local dn = {}
+        local du = {}
         function self:_refreshMini()
-            local dp = 0
-            for dq, dr in pairs(k.Flags) do
-                if dr._type == 'Toggle' and dr.Value == true then
-                    dp += 1
+            local dv = 0
+            for dw, dx in pairs(k.Flags) do
+                if dx._type == 'Toggle' and dx.Value == true then
+                    dv += 1
                 end
             end
-            if dp ~= dg then
-                local dq = dp > dg
-                dg = dp
-                cn.Text = tostring(dp)
-                cn.Visible = dp > 0
-                for dr, ds in ipairs(cm) do
-                    ah(ds, {BackgroundColor3 = dp > 0 and z.Accent or z.Muted}, 0.25)
-                    if dp == 0 then
-                        ah(ds, {Size = UDim2.fromOffset(3, 3)}, 0.25)
+            if dv ~= dm then
+                local dw = dv > dm
+                dm = dv
+                cp.Text = tostring(dv)
+                for dx, dy in ipairs(co) do
+                    ah(dy, {BackgroundColor3 = dv > 0 and z.Accent or z.Muted}, 0.25)
+                    if dv == 0 then
+                        ah(dy, {Size = UDim2.fromOffset(3, 3)}, 0.25)
                     end
                 end
-                if dq and cX == 'Compact' and cc.Visible then
+                if dw and c1 == 'Compact' and cc.Visible then
                     ce.Scale = 1.06
                     ah(ce, {Scale = 1}, 0.4, Enum.EasingStyle.Back)
                 end
             end
-            cF.Text = tostring(dp)
-            dl = nil
-            for dq, dr in ipairs(self._pinned) do
-                if not dr._isShown or dr:_isShown() then
-                    dl = dr
+            cJ.Text = tostring(dv)
+            local dw = {}
+            for dx, dy in pairs(k.Flags) do
+                if dy._type == 'Toggle' and dy.Value == true and dy._searchName ~= '' then
+                    table.insert(dw, dy._searchName)
+                end
+            end
+            table.sort(dw)
+            local dx = {}
+            for dy = 1, math.min(#dw, 3) do
+                dx[dy] = k._rich(dw[dy])
+            end
+            local dy = #dw - #dx
+            cM.Text = '<font color="#8A8A93">Running </font>' .. table.concat(
+                dx, '<font color="#8A8A93"> \u{b7} </font>'
+            ) .. (dy > 0 and string.format('<font color="#8A8A93">  +%d</font>', dy) or '')
+            cM.Visible = #dw > 0
+            ds = nil
+            for dz, dA in ipairs(self._pinned) do
+                if not dA._isShown or dA:_isShown() then
+                    ds = dA
                     break
                 end
             end
-            if dl then
-                dh.Text = dl:Text()
-                dh.TextColor3 = dl._shownColor and dl._shownColor() or z.Text
-            end
-            dm(dg > 0 and dl ~= nil)
-            local dq = typeof(self.Keybind) == 'EnumItem' and aI(self.Keybind)
-            cI.Text = E and 'Tap to open' or (dq and ('Click or press ' .. dq .. ' to open') or 'Click to open')
-            local dr = {}
-            for ds, dt in ipairs(self._pinned) do
-                if (not dt._isShown or dt:_isShown()) and #dr < b7.Pinned then
-                    table.insert(dr, dt)
+            if ds then
+                local dz = tostring(ds:Text() or '')
+                if dz:gsub('<[^>]*>', ''):match('%S') then
+                    dn.Text = dz
+                    local dA = ds._shownColor and ds._shownColor() or z.Text
+                    local dB, dC, dD = dA:ToHSV()
+                    dn.TextColor3 = dD < 0.35 and z.Text or dA
+                else
+                    ds = nil
                 end
             end
-            cH.Visible = false
-            for ds = 1, math.max(#dr, #dn) do
-                local dt = dr[ds]
-                local du = dn[ds]
-                if dt then
-                    if not du then
-                        local dv = ai(
+            dt(dm > 0 and ds ~= nil)
+            local dz = dm > 0 and not dr
+            cq.Visible = not dz
+            cr.Visible = not dz
+            cp.Visible = dz
+            cn.Visible = dm > 0
+            cm.Visible = not dr
+            cl.Visible = not dr
+            local dA = typeof(self.Keybind) == 'EnumItem' and aI(self.Keybind)
+            cN.Text = E and 'Tap to open' or (dA and ('Click or press ' .. dA .. ' to open') or 'Click to open')
+            local dC = {}
+            for dD, dE in ipairs(self._pinned) do
+                if (not dE._isShown or dE:_isShown()) and #dC < b7.Pinned then
+                    table.insert(dC, dE)
+                end
+            end
+            cL.Visible = false
+            for dD = 1, math.max(#dC, #du) do
+                local dE = dC[dD]
+                local dF = du[dD]
+                if dE then
+                    if not dF then
+                        local dG = ai(
                             'Frame',
-                            {Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, LayoutOrder = ds, Parent = cH}
+                            {Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, LayoutOrder = dD, Parent = cL}
                         )
-                        du = {
-                            Frame = dv,
+                        dF = {
+                            Frame = dG,
                             Key = am(
                                 {
                                     Size = UDim2.new(0.5, -4, 1, 0), TextSize = 12,
                                     FontFace = D.Regular, TextColor3 = z.Muted, RichText = true,
-                                    Parent = dv
+                                    Parent = dG
                                 }
                             ),
                             Value = am(
@@ -17881,30 +18438,30 @@ local a = (function()
                                     Position = UDim2.fromScale(1, 0),
                                     Size = UDim2.new(0.5, -4, 1, 0), TextSize = 12,
                                     TextXAlignment = Enum.TextXAlignment.Right, RichText = true,
-                                    Parent = dv
+                                    Parent = dG
                                 }
                             )
                         }
-                        dn[ds] = du
+                        du[dD] = dF
                     end
-                    du.Frame.Visible = true
-                    du.Key.Text = k._rich(dt.Name)
-                    du.Value.Text = dt:Text()
-                    local dv = dt._shownColor and dt._shownColor() or z.Text
-                    if du.Value.TextColor3 ~= dv then
-                        ah(du.Value, {TextColor3 = dv}, 0.2)
+                    dF.Frame.Visible = true
+                    dF.Key.Text = k._rich(dE.Name)
+                    dF.Value.Text = dE:Text()
+                    local dG = dE._shownColor and dE._shownColor() or z.Text
+                    if dF.Value.TextColor3 ~= dG then
+                        ah(dF.Value, {TextColor3 = dG}, 0.2)
                     end
-                elseif du then
-                    du.Frame.Visible = false
+                elseif dF then
+                    dF.Frame.Visible = false
                 end
             end
-            if cX == 'Expanded' and c0 then
+            if c1 == 'Expanded' and (c5 or self.IslandStyle == 'Always Show') then
                 task.defer(
                     function()
-                        if cX == 'Expanded' and c0 and self.Minimized then
-                            local ds = c8('Expanded')
-                            if math.abs(ds.Y - cc.Size.Y.Offset) > 1 then
-                                de('Expanded')
+                        if c1 == 'Expanded' and (c5 or self.IslandStyle == 'Always Show') and self.Minimized then
+                            local dD = de('Expanded')
+                            if math.abs(dD.Y - cc.Size.Y.Offset) > 1 then
+                                dk('Expanded')
                             end
                         end
                     end
@@ -17965,6 +18522,16 @@ local a = (function()
                         ah(self._miniScale, {Scale = 1}, 0.3, Enum.EasingStyle.Quint)
                         ah(cc, {GroupTransparency = 0}, 0.18, Enum.EasingStyle.Quad)
                         ca(self, ch, ci, 0.2)
+                        if self.IslandStyle == 'Always Show' then
+                            task.delay(
+                                0.22,
+                                function()
+                                    if self._minimizeGeneration == cb and self._islandSettle then
+                                        self._islandSettle()
+                                    end
+                                end
+                            )
+                        end
                     end
                 )
             end
