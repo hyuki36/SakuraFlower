@@ -261,7 +261,7 @@ local a = (function()
     k.ThemeName = 'Midnight'
     k.Assets = {
         Shadow = 'rbxassetid://6014261993', Glow = 'rbxassetid://8992230677',
-        Logo = 'rbxassetid://103859712365480'
+        Logo = 'rbxassetid://126046618277085'
     }
     local q = [[https://raw.githubusercontent.com/Footagesus/Icons/refs/heads/main/lucide/dist/Icons.lua]]
     local r = nil
